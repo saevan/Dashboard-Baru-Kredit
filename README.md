@@ -88,9 +88,8 @@ Navigasi memakai *hash router* (`#/beranda`, `#/masuk`, …), jadi tidak perlu r
 
 CLI (alternatif): `vercel login` lalu `vercel --prod`.
 
-### GitHub Pages (alternatif)
-Workflow `.github/workflows/pages.yml` menjalankan tes lalu men-deploy setiap push ke `main`.
-Aktifkan sekali di *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+### Tes otomatis
+Workflow `.github/workflows/test.yml` menjalankan `npm test` di setiap pull request dan push ke `main`.
 
 Di dalam frame (mis. Artifact claude.ai) cadangan disalin ke papan klip karena host memblokir unduhan,
 dan OCR foto tidak tersedia (data bahasa OCR diunduh dari host yang diblokir). CSV, Excel, dan PDF berteks tetap terbaca.
