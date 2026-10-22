@@ -35,8 +35,9 @@ export const COLLATERAL_OPTIONS = [
 ];
 
 export const SCHEME_OPTIONS = [
-     { key: 'anuitas', label: 'Cicilan tetap (anuitas)' },
-     { key: 'flat', label: 'Bunga flat' }
+     { key: 'annuity', label: 'Cicilan tetap tiap bulan (anuitas)' },
+     { key: 'flat', label: 'Bunga flat (dihitung dari pinjaman awal)' },
+     { key: 'bullet', label: 'Bayar bunga saja, pokok di akhir' }
 ];
 
 /** Pos laporan keuangan. `required` = 9 pos wajib kompendium. */
@@ -129,3 +130,19 @@ export function validateStep(step, b) {
      }
      return errs;
 }
+
+/** Terapkan jawaban wawancara (1–5) ke parameter kualitatif mesin. */
+export function applyInterview(borrower, interview = {}, defaults = {}) {
+     const bm = { ...defaults, ...(borrower.bisnis_manajemen || {}) };
+     for (const q of INTERVIEW_QUESTIONS) {
+          const v = interview[q.key];
+          if (v === null || v === undefined) continue;
+          for (const field of q.fields) bm[field] = interviewToScore(v);
+     }
+     return { ...borrower, bisnis_manajemen: bm };
+}
+
+export const PURPOSE_OPTIONS = [
+     { key: 'modal_kerja', label: 'Modal kerja (bahan baku, stok, operasional)' },
+     { key: 'investasi', label: 'Investasi (peralatan, mesin, renovasi, kendaraan)' }
+];

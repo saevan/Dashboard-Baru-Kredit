@@ -14,9 +14,28 @@ Perhitungannya **lengkap dan identik** dengan aplikasi MEZS.id (productive-loan-
 | "Jika omzet turun 20%, …" | Stress test 8 skenario |
 | Daftar perbaikan | Pelanggaran aturan, integritas laporan, data kosong |
 | **Lihat detail / mode Lengkap** | PD, LGD, EL/UL, bunga berbasis risiko, RAROC, ATMR, borrowing base, covenant |
+| "Coba: bagaimana jika?" | Analisis ulang langsung saat jumlah, lama, atau bunga diubah |
+| Daftar pinjaman: hijau / kuning / merah | EWS 20 parameter, kolektibilitas POJK 40, CKPN PSAK 71, PPKA, NPL, HHI |
+| Daftar centang syarat pencairan | Syarat penarikan + borrowing base (pencairan pertama dibatasi) |
+| "Yang perlu dilakukan" | Tindakan & eskalasi dari aturan judgement EWS |
+| Pilihan keringanan cicilan | Restrukturisasi 3R (bunga ≥ titik impas, masa tunggu POJK 40) |
 
 Contoh Bu Sari (Katering Dapur Sari, fiktif): skor 87,2 → **idAA — Sangat baik**, status **Perlu ditinjau**
 karena cicilan Rp 400 jt memakai 63% uang usaha (batas 60%). Saran: pinjam **Rp 380 jt** → **Layak dibiayai**.
+
+Contoh Pak Darto (Warung Bakso, fiktif): Mei **Sehat** → Juli **Waspada** (telat 9 hari) → September **Bermasalah**
+(telat 45 hari, uang usaha 0,78 kali cicilan). Pilihan keringanan yang disarankan: perpanjang jadi **33 bulan**,
+cicilan **Rp 7,47 jt**, uang usaha 1,23 kali cicilan.
+
+## Alur
+
+1. **Ajukan** — formulir 5 langkah (atau "Isi contoh Bu Sari") → kartu hasil + simulasi → *Simpan ke daftar pinjaman*.
+2. **Keputusan** — petugas menyetujui jumlah (bawaan: jumlah aman) atau menolak dengan alasan.
+3. **Pencairan** — centang syarat; tombol *Cairkan* aktif hanya bila syarat wajib lengkap.
+4. **Pemantauan** — catat tiap bulan (7 isian sederhana, 20 parameter di mode Lengkap) → lampu, alasan, tindakan.
+5. **Keringanan** — muncul otomatis saat lampu kuning/merah; petugas memilih dan menerapkan.
+
+Data tersimpan di browser (localStorage). Gunakan *Unduh cadangan* / *Pulihkan dari cadangan* di Daftar pinjaman.
 
 ## Menjalankan
 
@@ -37,11 +56,15 @@ src/simple/             lapisan baru:
   analyze.js            memanggil mesin (+ uji ulang pada jumlah saran)
   translate.js          hasil mesin → status, peringkat, bintang, kalimat (tanpa hitung ulang)
   form-schema.js        formulir 5 langkah dalam bahasa sehari-hari
-  demo.js               kasus Bu Sari
-src/ui/app.js           tampilan formulir & kartu hasil
+  loans.js              siklus pinjaman: keputusan, pencairan, pemantauan, keringanan, portofolio
+  demo.js               kasus Bu Sari & Pak Darto
+src/ui/app.js           navigasi, formulir, kartu hasil, simulasi, penyimpanan
+src/ui/loans-view.js    daftar pinjaman & detail pinjaman
 tests/core/             tes mesin dari repo asal
 tests/simple.test.js    tes penerjemah, termasuk "hasil tetap sama"
+tests/loans.test.js     tes siklus pinjaman (Pak Darto = kompendium)
 docs/PRD_DASHBOARD_SEDERHANA.md
+docs/UJI_COBA_PENGGUNA.md   panduan uji coba Tahap 3
 ```
 
 ## Menyelaraskan mesin

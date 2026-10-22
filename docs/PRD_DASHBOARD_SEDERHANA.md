@@ -185,4 +185,12 @@ Diukur lewat uji coba dengan 10 pemilik UMKM dan 5 petugas kredit sebelum dan se
 
 ---
 
-Status implementasi Tahap 1 di repo ini: formulir 5 langkah, kartu hasil (status, peringkat + artinya, alasan, jumlah aman, cicilan bulanan & harian, bintang per pilar), uji kondisi sulit, daftar perbaikan, saklar Sederhana/Lengkap, rincian analis, dan cetak. Portofolio & peringatan dini masuk Tahap 2.
+## Status implementasi (repo ini)
+
+| Tahap | Isi | Status |
+| --- | --- | --- |
+| 1 | Penerjemah kalimat & peringkat, kartu hasil, layar perbaikan, formulir 5 langkah, saklar Sederhana/Lengkap | Selesai |
+| 2 | Daftar pinjaman (portofolio) & peringatan dini, keputusan & pencairan, keringanan cicilan, simulasi "bagaimana jika", uji kondisi sulit, cetak, cadangan data | Selesai |
+| 3 | Uji coba dengan pengguna nyata | Siap dijalankan — lihat `docs/UJI_COBA_PENGGUNA.md` |
+
+Catatan: layar 4–5 (portofolio & peringatan dini) yang di tabel layar ditandai MVP dibangun bersama Tahap 2.
