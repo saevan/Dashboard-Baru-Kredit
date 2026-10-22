@@ -73,11 +73,27 @@ Tanpa build dan tanpa dependency.
 
 ## Deploy
 
-- **GitHub Pages:** workflow `.github/workflows/pages.yml` menjalankan tes lalu men-deploy setiap push.
-  Aktifkan sekali di *Settings → Pages → Build and deployment → Source: GitHub Actions*.
-- **Vercel / Netlify:** impor repo, tanpa build command, output directory = root.
-- Di dalam frame (mis. Artifact claude.ai) cadangan disalin ke papan klip karena host memblokir unduhan,
-  dan OCR foto tidak tersedia (data bahasa OCR diunduh dari host yang diblokir). CSV, Excel, dan PDF berteks tetap terbaca.
+### Vercel (seperti dashboard lama)
+
+Situs statis murni tanpa build. `vercel.json` (sama dengan dashboard lama: `cleanUrls`, install dilewati, cache
+`index.html`/`src` selalu segar) dan `.vercelignore` (tes, dokumen, data uji tidak ikut di-deploy) sudah disertakan.
+
+Sambungkan sekali dari akun Vercel:
+1. Buka <https://vercel.com/new> → **Import** `saevan/Dashboard-Baru-Kredit` (beri izin GitHub App Vercel bila diminta).
+2. **Framework Preset: Other**; biarkan Build Command & Output Directory kosong.
+3. **Deploy**. Production branch = `main`.
+
+Setelah itu setiap push ke `main` otomatis men-deploy ulang, dan setiap pull request mendapat tautan *Preview*.
+Navigasi memakai *hash router* (`#/beranda`, `#/masuk`, …), jadi tidak perlu rewrite.
+
+CLI (alternatif): `vercel login` lalu `vercel --prod`.
+
+### GitHub Pages (alternatif)
+Workflow `.github/workflows/pages.yml` menjalankan tes lalu men-deploy setiap push ke `main`.
+Aktifkan sekali di *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+
+Di dalam frame (mis. Artifact claude.ai) cadangan disalin ke papan klip karena host memblokir unduhan,
+dan OCR foto tidak tersedia (data bahasa OCR diunduh dari host yang diblokir). CSV, Excel, dan PDF berteks tetap terbaca.
 
 ## Struktur
 

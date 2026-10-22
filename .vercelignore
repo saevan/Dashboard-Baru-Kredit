@@ -1,0 +1,20 @@
+# .vercelignore — berkas yang TIDAK dikirim ke deployment Vercel (tetap ada di Git).
+# Aplikasi hanya butuh: index.html, src/**, data/contoh/*, data/demo/IMPOR_*.json.
+
+# --- Dev & QA ---
+tests/
+node_modules/
+.github/
+
+# --- Data uji mesin (bukan runtime) ---
+data/demo/backtest-*.json
+data/demo/09_ACUAN_WAWANCARA.csv
+
+# --- Dokumen internal ---
+docs/
+
+# --- Metadata repo & editor ---
+.git/
+.gitignore
+.vscode/
+.idea/
