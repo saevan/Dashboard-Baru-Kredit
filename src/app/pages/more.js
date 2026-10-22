@@ -27,7 +27,7 @@ const MORE = [{ label: 'Lainnya', href: '#/lainnya' }];
 export function portfolio(main, params, ctx) {
      const r = P.portfolioReport();
      const t = r.totals || {};
-     const detail = params.lengkap === '1' || prefs().detail === 'lengkap';
+     const detail = params.lengkap === '1' || (params.lengkap !== '0' && prefs().detail !== 'sederhana');
      if (!t.facilities) {
           main.innerHTML = `<div class="page-head"><div><h1>Portofolio</h1></div></div>${card('', empty('Belum ada pinjaman berjalan', 'Portofolio terisi setelah fasilitas dicairkan.', '<button class="btn btn-primary" data-seed>Muat data contoh</button>'))}`;
           main.querySelector('[data-seed]').addEventListener('click', (e) => seedDemo(e.currentTarget, ctx));
@@ -50,7 +50,7 @@ export function portfolio(main, params, ctx) {
           ${card('Konsentrasi sektor', `${rows([['Indeks HHI', num(r.concentration?.hhi, 3)], ['Ambang waspada', num(r.concentration?.hhi_alert, 2)]])}<ul class="list">${(r.concentration?.by_sector || []).map((s) => `<li><span>${esc(s.label)}</span><span>${pct(s.share, 0)} · ${rpShort(s.exposure)}</span></li>`).join('')}</ul>`, { level: 3 })}
           ${card('Perpindahan kolektibilitas', rows([['Membaik', r.migration?.upgrades], ['Memburuk', r.migration?.downgrades], ['Tetap', r.migration?.stable], ['Belum ada riwayat', r.migration?.no_history]]) + (r.restructured?.length ? `<p class="small">${r.restructured.length} fasilitas dalam masa tunggu keringanan.</p>` : '') + (r.contagion?.facilities ? `<p class="small">${r.contagion.facilities} fasilitas disesuaikan aturan satu debitur.</p>` : ''), { level: 3 })}
      </div>` : '<p class="small muted" style="margin-top:12px">Pilih <strong>Lengkap</strong> untuk melihat CKPN, PPKA, ATMR, konsentrasi, dan migrasi.</p>'}`;
-     main.querySelectorAll('[name=lvl]').forEach((el) => el.addEventListener('change', () => { setPref('detail', el.value); location.hash = el.value === 'lengkap' ? '#/portofolio?lengkap=1' : '#/portofolio'; }));
+     main.querySelectorAll('[name=lvl]').forEach((el) => el.addEventListener('change', () => { setPref('detail', el.value); location.hash = el.value === 'lengkap' ? '#/portofolio?lengkap=1' : '#/portofolio?lengkap=0'; }));
      return { title: 'Portofolio' };
 }
 

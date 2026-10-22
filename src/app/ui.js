@@ -146,7 +146,7 @@ const PREF_KEY = 'mezs.prefs.v1';
 const safeGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
 const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* penyimpanan tidak tersedia */ } };
 
-export function prefs() { return { theme: 'auto', detail: 'sederhana', ...(safeGet(PREF_KEY) || {}) }; }
+export function prefs() { return { theme: 'auto', detail: 'lengkap', ...(safeGet(PREF_KEY) || {}) }; }
 export function setPref(key, value) { safeSet(PREF_KEY, { ...prefs(), [key]: value }); }
 
 export function applyTheme(theme = prefs().theme) {

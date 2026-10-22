@@ -29,7 +29,8 @@ cicilan **Rp 7,47 jt**, uang usaha 1,23 kali cicilan.
 
 ## Dibangun ulang untuk UX yang lebih mudah
 
-Tampilan dibuat **dari nol**; logika perhitungan, teori, dan format datanya diambil utuh dari dashboard lama
+Kelengkapan dashboard lama dipertahankan; yang dipangkas adalah **langkah operasional** sehari-hari
+(lihat §8 di cetak biru). Tampilan dibuat **dari nol**; logika perhitungan, teori, dan format datanya diambil utuh dari dashboard lama
 (`productive-loan-analyzer`) — dashboard lama tidak diubah. Keputusan desain mengikuti 13 prinsip UX
 (Next Digital) dan dicatat di [`docs/REDESIGN_UX.md`](docs/REDESIGN_UX.md).
 
@@ -42,10 +43,11 @@ Tampilan dibuat **dari nol**; logika perhitungan, teori, dan format datanya diam
 
 **Petugas** — menu: Beranda · Pengajuan · Nasabah · Portofolio · Lainnya
 1. *Beranda*: tugas berikutnya per prioritas (audit, analisis, pencairan, menunggu pemohon) + kesehatan pinjaman.
-2. *Pengajuan → Tinjau* bertahap: Dokumen → Audit keuangan (2 butir otomatis) → Agunan → Wawancara (skala 5 tingkat)
-   → Hasil & keputusan. Hasil tidak muncul sebelum audit diverifikasi; audit belum lengkap wajib justifikasi.
+2. *Pengajuan → Tinjau* dalam **satu halaman kerja**: Dokumen · Audit keuangan (2 butir otomatis) · Agunan · Wawancara
+   (skala 5 tingkat), tombol "tandai semua" per bagian, progres langsung, tombol **Berikutnya →** → Hasil & keputusan. Hasil tidak muncul sebelum audit diverifikasi; audit belum lengkap wajib justifikasi.
    Penawaran flat / bagi hasil dengan pemeriksaan otomatis; di luar batas → keputusan manual beralasan.
-3. *Nasabah*: satu halaman per nasabah — Ringkasan · Analisis · Fasilitas & pemantauan (syarat pencairan,
+3. *Nasabah → Pemantauan bulanan*: semua pinjaman berjalan dalam satu tabel, isian awal = bulan lalu, **Simpan semua**.
+   *Nasabah*: satu halaman per nasabah — Ringkasan · Analisis · Fasilitas & pemantauan (syarat pencairan,
    cairkan, pemantauan bulanan 20 parameter, keringanan 3R, covenant) · Simulasi bagaimana-jika.
 4. *Portofolio*: mode Sederhana / Lengkap (NPL, CKPN PSAK 71, PPKA, ATMR, konsentrasi, migrasi).
 5. *Lainnya*: Analisis manual, Panduan 5C, Pengaturan (dengan pratinjau dampak + statistik penggunaan lokal), Tim.

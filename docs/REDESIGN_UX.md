@@ -7,6 +7,10 @@ Dashboard lama tidak diubah sama sekali.
 
 Acuan prinsip: [Prinsip Dasar User Experience — Next Digital](https://nextdigital.co.id/prinsip-dasar-user-experience/) (13 prinsip).
 
+> **Revisi arah (masukan pengguna):** kelengkapan dashboard lama sudah bagus dan **dipertahankan** —
+> yang ribet adalah **menjalankannya sehari-hari**. Fokus desain ulang: memangkas langkah operasional
+> (klik, pindah halaman, isian berulang), bukan menyembunyikan informasi. Lihat §8.
+
 ---
 
 ## 1. Masalah UX di dashboard lama (hasil audit)
@@ -82,3 +86,20 @@ Petugas:  Beranda (tugas) → Tinjau pengajuan: Audit keuangan → Cek agunan �
 
 - Mode lokal (data di browser), sama seperti mode lokal dashboard lama. Mode API/server lama tidak dibangun ulang.
 - Format data sama dengan dashboard lama: cadangan JSON dan berkas impor demo lama bisa dipakai.
+
+## 8. Memangkas langkah operasional
+
+Semua informasi dan perhitungan tetap tampil (Rincian analis, Portofolio mode Lengkap sebagai bawaan petugas).
+Yang dipangkas adalah pekerjaan rutin:
+
+| Pekerjaan rutin | Sebelumnya | Sekarang |
+| --- | --- | --- |
+| Meninjau satu pengajuan sampai dinilai | ±31 aksi, berpindah 5 halaman/tab | **16 aksi di satu halaman kerja** (diukur dengan uji browser): dokumen, audit keuangan, agunan, wawancara bertumpuk; tombol "tandai semua" per bagian; progres langsung tanpa memuat ulang; bilah aksi selalu terlihat |
+| Pindah ke pengajuan berikutnya | Kembali ke antrean, cari lagi | Tombol **Berikutnya →** di setiap pengajuan |
+| Menyiapkan fasilitas setelah pemohon menerima | Buka pengajuan → buka fasilitas | Tombol **Siapkan fasilitas** langsung di antrean & Beranda |
+| Syarat pencairan | Centang satu per satu | **Tandai semua terpenuhi** (dengan konfirmasi; tetap tercatat per syarat, waktu, dan petugas) |
+| Pemantauan bulanan seluruh pinjaman | Buka tiap nasabah, isi 20 parameter | **Pemantauan bulanan**: satu tabel semua pinjaman, isian awal = bulan lalu, ubah yang berubah saja, **Simpan semua** |
+| Mencari nasabah/pengajuan | Buka menu, gulir daftar | Tekan **/** lalu ketik nama |
+
+Kontrol tidak berkurang: "tandai semua" hanya mencentang butir yang bisa dicentang manual (butir otomatis
+tetap dihitung mesin), audit yang belum lengkap tetap wajib justifikasi, keputusan di luar batas tetap wajib alasan.

@@ -39,7 +39,7 @@ export function list(main, params) {
           : f === 'pantau' ? stale(r) : f === 'siap' ? r.facilityInfo.status === 'pipeline' : true;
      const items = all.filter(pick).sort((a, b) => String(b.borrower.updated_at || '').localeCompare(String(a.borrower.updated_at || '')));
      main.innerHTML = `
-     <div class="page-head"><div><h1>Nasabah</h1><p>${all.length} nasabah · ${all.filter((r) => r.facilityInfo.status === 'aktif').length} pinjaman berjalan</p></div><a class="btn" href="#/analisis">+ Analisis manual</a></div>
+     <div class="page-head"><div><h1>Nasabah</h1><p>${all.length} nasabah · ${all.filter((r) => r.facilityInfo.status === 'aktif').length} pinjaman berjalan</p></div><div class="actions"><a class="btn btn-primary" href="#/pemantauan">Pemantauan bulanan (${all.filter(stale).length} perlu)</a><a class="btn" href="#/analisis">+ Analisis manual</a></div></div>
      <nav class="tabs" aria-label="Saring nasabah">${LIST_FILTERS.map((x) => `<a href="#/nasabah${x.key ? `?filter=${x.key}` : ''}"${x.key === f ? ' aria-current="page"' : ''}>${esc(x.label)} (${all.filter((r) => (x.key === 'risiko' ? r.facilityInfo.status === 'aktif' && (['WATCH', 'WARNING', 'CRITICAL'].includes(r.facilityInfo.ews_level) || r.facilityInfo.collectibility !== 'lancar') : x.key === 'pantau' ? stale(r) : x.key === 'siap' ? r.facilityInfo.status === 'pipeline' : true)).length})</a>`).join('')}</nav>
      ${card('', items.length ? `<ul class="list">${items.map((r) => {
           const fac = r.facilityInfo;
@@ -148,7 +148,7 @@ function facility(c) {
                     <button class="btn btn-primary" data-fac="update">Simpan sisa pinjaman</button><button class="btn" type="button" data-fac="lunas">Tandai lunas</button></form>`)
                : '';
      const cp = c.conditions;
-     const conditions = cp.total && ['pipeline', 'aktif'].includes(f.status) ? card('Syarat pencairan', `<p class="small muted">${cp.done}/${cp.total} terpenuhi. Centang setelah dokumen asli diperiksa; tercatat waktu dan petugas.</p>
+     const conditions = cp.total && ['pipeline', 'aktif'].includes(f.status) ? card('Syarat pencairan', `<div class="bulkbar"><p class="small muted" style="margin:0">${cp.done}/${cp.total} terpenuhi. Centang setelah dokumen asli diperiksa; tercatat waktu dan petugas.</p>${f.status === 'pipeline' && cp.done < cp.total ? '<button class="btn btn-sm" data-cp-all>✓ Tandai semua terpenuhi</button>' : ''}</div>
           ${cp.items.map((it) => `<label class="check"><input type="checkbox" data-cp="${esc(it.code)}" ${it.done ? 'checked' : ''} ${f.status === 'pipeline' ? '' : 'disabled'}><span><strong>${esc(it.label)}</strong> ${it.mandatory ? pill('Wajib', 'warn') : pill('Disarankan', 'plain')}<br><span class="small muted">${esc(it.description)}${it.record?.done ? ` · ${esc(dateTime(it.record.at))}${it.record.by ? ` oleh ${esc(it.record.by)}` : ''}` : ''}</span></span></label>`).join('')}`) : '';
      return `<div class="stack">${status}${actions}${conditions}
           ${f.status === 'aktif' ? monitorCard(c) + reliefCard(c) + covenantCard(c) : ''}
@@ -284,6 +284,11 @@ function bind(main, c, ctx) {
           const ok = await busy(btn, () => P.facilityAction(id, kind, { outstanding }), { ok: { disburse: 'Pencairan tercatat — pinjaman berjalan.', update: 'Sisa pinjaman diperbarui.', lunas: 'Pinjaman ditandai lunas.', ditolak: 'Fasilitas dibatalkan.' }[kind], fail: 'Gagal' });
           if (ok !== undefined) { track('facility', { kind }); refresh(); }
      }));
+     main.querySelector('[data-cp-all]')?.addEventListener('click', async (e) => {
+          const pending = c.conditions.items.filter((it) => !it.done);
+          if (!(await confirmSheet({ title: `Tandai ${pending.length} syarat terpenuhi?`, message: 'Pastikan dokumen asli sudah Anda periksa. Setiap syarat tercatat dengan waktu dan nama Anda.', confirm: 'Tandai semua' }))) return;
+          if (await busy(e.currentTarget, async () => { for (const it of pending) P.setCondition(id, it.code, true); return true; }, { ok: `${pending.length} syarat ditandai. Pencairan siap dicatat.`, fail: 'Gagal' })) { track('bulk_conditions'); refresh(); }
+     });
      main.querySelectorAll('[data-cp]').forEach((el) => el.addEventListener('change', () => {
           try { P.setCondition(id, el.dataset.cp, el.checked); refresh(); main.querySelector(`[data-cp="${el.dataset.cp}"]`)?.focus(); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
      }));
@@ -335,4 +340,69 @@ function bind(main, c, ctx) {
 
      const hash = location.hash.split('#')[2];
      if (hash) document.getElementById(hash)?.scrollIntoView({ block: 'start' });
+}
+
+/* ================================================= PEMANTAUAN CEPAT ==== */
+
+const QUICK = ['P11_days_late', 'P1_dscr', 'P6_omzet_yoy_pct', 'P20_covenant'];
+
+/**
+ * Pemantauan bulanan semua pinjaman berjalan dalam satu tabel. Isian awal =
+ * nilai bulan lalu (atau dari analisis); parameter lain dari 20 parameter ikut
+ * nilai bulan lalu. Evaluasi tetap memakai mesin EWS lama per pinjaman.
+ */
+export function quickMonitor(main, params, ctx) {
+     const rowsAll = P.customerList().filter((r) => r.facilityInfo.status === 'aktif');
+     const period = P.currentPeriod();
+     const doneThisMonth = (r) => r.monitoring.some((m) => m.period === period);
+     const defs = Object.fromEntries(P.EWS_PARAMS.map((p) => [p.key, p]));
+     const valueOf = (r, k) => (r.lastMonitoring?.params?.[k] ?? P.ewsPrefill(r.analysis)[k] ?? '');
+     const input = (r, k) => {
+          const p = defs[k];
+          const v = valueOf(r, k);
+          const id = `qm-${r.borrower.id}-${k}`;
+          return p.type === 'select'
+               ? `<select id="${id}" data-row="${esc(r.borrower.id)}" data-k="${k}" aria-label="${esc(PLAIN_PARAM[k])} — ${esc(r.borrower.nama)}"><option value="">—</option>${p.options.map((o) => `<option value="${o}"${String(v) === o ? ' selected' : ''}>${esc(OPTION_WORD[o] || o)}</option>`).join('')}</select>`
+               : `<input id="${id}" type="number" step="${p.step}" data-row="${esc(r.borrower.id)}" data-k="${k}" value="${esc(v)}" aria-label="${esc(PLAIN_PARAM[k])} — ${esc(r.borrower.nama)}" style="max-width:110px">`;
+     };
+     main.innerHTML = `<div class="page-head"><div><h1>Pemantauan bulanan</h1><p>Periode ${esc(period)} · ${rowsAll.filter(doneThisMonth).length}/${rowsAll.length} pinjaman sudah dipantau</p></div></div>
+     ${rowsAll.length ? card('', `<p class="small muted">Isian awal = kondisi bulan lalu. Ubah yang berubah saja, lalu <strong>Simpan semua</strong>. 16 parameter lain memakai nilai bulan lalu; rincian lengkap tetap bisa diisi di halaman nasabah.</p>
+          <div class="table-wrap"><table class="quick"><thead><tr><th>Nasabah</th><th>Terakhir</th>${QUICK.map((k) => `<th>${esc(PLAIN_PARAM[k])}</th>`).join('')}<th>Hasil</th></tr></thead><tbody>
+          ${rowsAll.map((r) => `<tr data-tr="${esc(r.borrower.id)}"><td><a href="#/nasabah/${encodeURIComponent(r.borrower.id)}?bagian=fasilitas">${esc(r.borrower.nama)}</a><div class="small muted">sisa ${rpShort(r.facilityInfo.outstanding)}</div></td>
+               <td>${r.lastMonitoring ? `${ews(r.lastMonitoring.ews_level)}<div class="small muted">${esc(r.lastMonitoring.period || date(r.lastMonitoring.created_at))}</div>` : ews('UNKNOWN')}</td>
+               ${QUICK.map((k) => `<td>${input(r, k)}</td>`).join('')}
+               <td data-out>${doneThisMonth(r) ? pill('Sudah bulan ini', 'plain') : ''}</td></tr>`).join('')}
+          </tbody></table></div>
+          <div class="actionbar"><div class="actionbar-in"><span class="small" data-qm-status aria-live="polite">${rowsAll.length} pinjaman</span><div class="actions">
+               <button class="btn" data-qm-eval>Lihat hasil dulu</button><button class="btn btn-primary" data-qm-save>Simpan semua</button></div></div></div>`)
+          : card('', empty('Tidak ada pinjaman berjalan', 'Pemantauan bulanan muncul setelah ada fasilitas yang dicairkan.'))}`;
+     const collect = (id) => {
+          const r = rowsAll.find((x) => x.borrower.id === id);
+          const base = { ...(r.lastMonitoring?.params || P.ewsPrefill(r.analysis)) };
+          main.querySelectorAll(`[data-row="${CSS.escape(id)}"]`).forEach((el) => { base[el.dataset.k] = el.value; });
+          return base;
+     };
+     const paint = (save) => {
+          let n = 0;
+          const levels = {};
+          for (const r of rowsAll) {
+               const id = r.borrower.id;
+               const ev = save ? P.saveMonitoring(id, collect(id), { period, note: 'Pemantauan cepat' }) : P.evaluateMonitoringFor(id, collect(id));
+               levels[ev.ews_level] = (levels[ev.ews_level] || 0) + 1;
+               main.querySelector(`[data-tr="${CSS.escape(id)}"] [data-out]`).innerHTML = `${ews(ev.ews_level)}<div class="small muted">${esc(ev.collectibility || '')}</div>`;
+               n += 1;
+          }
+          main.querySelector('[data-qm-status]').innerHTML = `${save ? `<strong>${n} pemantauan tersimpan.</strong> ` : ''}${Object.entries(levels).map(([k, v]) => `${v} ${esc(EWS_WORD[k]?.[0] || k)}`).join(' · ')}`;
+          return levels;
+     };
+     main.querySelector('[data-qm-eval]')?.addEventListener('click', () => paint(false));
+     main.querySelector('[data-qm-save]')?.addEventListener('click', async (e) => {
+          const ok = await confirmSheet({ title: `Simpan pemantauan ${rowsAll.length} pinjaman?`, message: `Periode ${period}. Setiap pinjaman mendapat catatan pemantauan baru.`, confirm: 'Simpan semua' });
+          if (!ok) return;
+          const levels = await busy(e.currentTarget, async () => paint(true), { fail: 'Gagal menyimpan' });
+          if (!levels) return;
+          toast(`Pemantauan tersimpan.${levels.CRITICAL ? ` ${levels.CRITICAL} pinjaman bermasalah — eskalasi ke Manajer Risiko.` : ''}`, levels.CRITICAL ? 'warn' : 'ok', 6000);
+          track('quick_monitor', { n: rowsAll.length });
+     });
+     return { title: 'Pemantauan bulanan', crumbs: [{ label: 'Nasabah', href: '#/nasabah' }, { label: 'Pemantauan bulanan' }] };
 }

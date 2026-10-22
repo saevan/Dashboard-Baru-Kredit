@@ -43,6 +43,7 @@ const ROUTES = {
           beranda: lender.home,
           pengajuan: (m, p, c) => (p.id ? lender.review(m, p, c) : lender.queue(m, p, c)),
           nasabah: (m, p, c) => (p.id ? customers.detail(m, p, c) : customers.list(m, p, c)),
+          pemantauan: customers.quickMonitor,
           portofolio: more.portfolio,
           lainnya: more.menu,
           analisis: more.manual,
@@ -75,7 +76,7 @@ function shell(role) {
      const themeIcon = theme === 'dark' ? 'sun' : 'moon';
      const search = role === 'lender'
           ? `<div class="search" data-search><label class="sr-only" for="q-SLOT">Cari nasabah atau pengajuan</label>${icon('search', 16)}
-               <input id="q-SLOT" type="search" role="combobox" aria-expanded="false" aria-controls="q-SLOT-list" aria-autocomplete="list" autocomplete="off" placeholder="Cari nasabah / pengajuan…">
+               <input id="q-SLOT" type="search" role="combobox" aria-expanded="false" aria-controls="q-SLOT-list" aria-autocomplete="list" autocomplete="off" placeholder="Cari nasabah / pengajuan…  ( / )">
                <ul class="search-list" id="q-SLOT-list" role="listbox" hidden></ul></div>`
           : '';
      return `<a class="skip" href="#main">Lewati ke isi</a>
@@ -128,7 +129,7 @@ function setCrumbs(crumbs) {
 function markNav(page) {
      root().querySelectorAll('[data-nav]').forEach((a) => {
           const target = a.dataset.nav.replace('#/', '');
-          const lainnya = ['analisis', 'panduan', 'pengaturan', 'tim'].includes(page) && target === 'lainnya';
+          const lainnya = (['analisis', 'panduan', 'pengaturan', 'tim'].includes(page) && target === 'lainnya') || (page === 'pemantauan' && target === 'nasabah');
           if (target === page || lainnya) a.setAttribute('aria-current', 'page');
           else a.removeAttribute('aria-current');
      });
@@ -214,6 +215,13 @@ function onRoute() {
      }
      lastPage = page;
 }
+
+/* Pintasan: "/" membuka pencarian cepat (petugas). */
+document.addEventListener('keydown', (e) => {
+     if (e.key !== '/' || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+     const input = [...document.querySelectorAll('[data-search] input')].find((el) => el.offsetParent !== null);
+     if (input) { e.preventDefault(); input.focus(); }
+});
 
 applyTheme();
 window.addEventListener('hashchange', onRoute);

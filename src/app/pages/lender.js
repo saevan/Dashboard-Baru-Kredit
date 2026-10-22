@@ -32,7 +32,9 @@ function taskRow(row) {
      const reasons = priorityReasons(row).filter((r) => !r.startsWith('Belum ada penanggung'));
      return `<li><div class="main"><a href="${esc(taskHref(row))}">${esc(nameOf(row))}</a>
           <div class="meta">${rp(row.amount_requested ?? row.payload?.borrower?.plafon_diajukan)} · ${row.age_days === null ? '' : `${row.age_days} hari di tahap ini`}${reasons.length ? ` · <strong>${esc(reasons.join(' · '))}</strong>` : ''}</div></div>
-          ${statusPill(row.status)}<a class="btn btn-sm${row.task.owner === 'lender' ? ' btn-primary' : ''}" href="${esc(taskHref(row))}">${esc(row.task.label)}</a></li>`;
+          ${statusPill(row.status)}${row.task.label === 'Siapkan fasilitas'
+               ? `<button class="btn btn-sm btn-primary" data-prepare-row="${esc(row.id)}">Siapkan fasilitas</button>`
+               : `<a class="btn btn-sm${row.task.owner === 'lender' ? ' btn-primary' : ''}" href="${esc(taskHref(row))}">${esc(row.task.label)}</a>`}</li>`;
 }
 
 /* ============================================================ BERANDA ==== */
@@ -57,11 +59,13 @@ export function home(main, params, ctx) {
                     ${kpi('Sisa pinjaman beredar', rpShort(h.portfolio.totals?.exposure || 0), '#/portofolio')}
                     ${kpi('Kredit bermasalah (NPL)', h.portfolio.totals?.exposure ? pct(h.portfolio.npl?.gross_ratio, 2) : '—', '#/portofolio')}
                     ${kpi('Perlu perhatian', `${risk.risk_count}`, '#/nasabah?filter=risiko')}
-                    ${kpi('Pemantauan ≤ 30 hari', risk.coverage === null ? '—' : pct(risk.coverage, 0), '#/nasabah?filter=pantau')}</div>
+                    ${kpi('Pemantauan ≤ 30 hari', risk.coverage === null ? '—' : pct(risk.coverage, 0), '#/pemantauan')}</div>
+                    ${risk.overdue ? `<div class="actions" style="margin-top:10px"><a class="btn btn-primary btn-sm" href="#/pemantauan">Isi pemantauan bulanan (${risk.overdue})</a></div>` : ''}
                     ${risk.items.filter((f) => f.level !== 'NORMAL' || !f.fresh).slice(0, 4).map((f) => `<p class="small" style="margin:10px 0 0"><a href="#/nasabah/${encodeURIComponent(f.id)}">${esc(f.nama)}</a> — ${esc(f.monitoring_status)} · ${esc(f.collectibility_label || f.collectibility)}</p>`).join('')}`)}
           </div>
      </div>`;
      main.querySelector('[data-seed]')?.addEventListener('click', (e) => seedDemo(e.currentTarget, ctx));
+     bindPrepareRows(main);
      return { title: 'Beranda' };
 }
 
@@ -95,19 +99,55 @@ export function queue(main, params) {
      <div class="page-head"><div><h1>Pengajuan</h1><p>${all.filter((r) => r.task.owner === 'lender').length} menunggu Anda · ${all.length} total</p></div></div>
      <nav class="tabs" aria-label="Saring pengajuan">${FILTERS.map((x) => `<a href="#/pengajuan${x.key ? `?filter=${x.key}` : ''}"${x.key === f ? ' aria-current="page"' : ''}>${esc(x.label)} (${all.filter((r) => (x.key === '' ? r.task.owner === 'lender' : x.key === 'pemohon' ? r.task.owner === 'borrower' : x.key === 'arsip' ? r.task.owner === 'none' : true)).length})</a>`).join('')}</nav>
      ${card('', rowsList.length ? `<ul class="list">${rowsList.map(taskRow).join('')}</ul>` : empty('Tidak ada pengajuan', f === '' ? 'Semua pengajuan sudah Anda tangani.' : '', all.length ? '' : '<p class="small">Pengajuan dari pemohon akan muncul di sini. Atau muat data contoh dari Beranda.</p>'))}`;
+     bindPrepareRows(main);
      return { title: 'Pengajuan' };
+}
+
+/** "Siapkan fasilitas" langsung dari daftar, lalu buka syarat pencairannya. */
+function bindPrepareRows(main) {
+     main.querySelectorAll('[data-prepare-row]').forEach((btn) => btn.addEventListener('click', async () => {
+          const fac = await busy(btn, () => A.prepareFacility(btn.dataset.prepareRow), { ok: 'Fasilitas disiapkan. Lengkapi syarat pencairan.', fail: 'Gagal' });
+          if (fac) location.hash = `#/nasabah/${encodeURIComponent(fac.id)}?bagian=fasilitas`;
+     }));
 }
 
 /* ======================================================== PENINJAUAN ==== */
 
-const REVIEW_STEPS = ['Dokumen', 'Audit keuangan', 'Agunan', 'Wawancara', 'Hasil & keputusan'];
 const EDITABLE = ['submitted', 'need_fix', 'verified'];
+const SECTIONS = [
+     { key: 'docs', label: 'Dokumen' },
+     { key: 'financial', label: 'Audit keuangan' },
+     { key: 'collateral', label: 'Agunan' },
+     { key: 'interview', label: 'Wawancara' }
+];
 
-function defaultStep(d) {
-     if (['submitted', 'need_fix'].includes(d.status)) return 0;
-     return 4;
+/** Pengajuan berikutnya yang menunggu petugas (untuk tombol "Berikutnya"). */
+function nextTaskHref(currentId) {
+     const next = A.lenderQueue().filter((r) => r.task.owner === 'lender' && r.id !== currentId)
+          .sort((a, b) => (b.age_days ?? -1) - (a.age_days ?? -1))[0];
+     return next ? { href: taskHref(next), name: nameOf(next) } : null;
 }
 
+function progressOf(d) {
+     const prog = auditProgress(d.audit, { borrower: d.borrower, documents: d.documents });
+     const docsDone = d.documents.filter((x) => x.verified).length;
+     return {
+          prog,
+          counts: {
+               docs: [docsDone, d.documents.length],
+               financial: [prog.financial.done, prog.financial.total],
+               collateral: [prog.collateral.done, prog.collateral.total],
+               interview: [prog.interview.done, prog.interview.total]
+          }
+     };
+}
+
+/**
+ * Satu halaman kerja: seluruh lembar audit dalam satu layar (tanpa pindah
+ * halaman), tombol "tandai semua" per bagian, progres langsung, dan bilah aksi
+ * yang selalu terlihat. Setelah dinilai, halaman yang sama menampilkan hasil
+ * & keputusan di atas, lembar audit (terkunci) di bawah.
+ */
 export function review(main, params, ctx) {
      const d = A.reviewDetail(params.id);
      const crumbs = [{ label: 'Pengajuan', href: '#/pengajuan' }];
@@ -115,42 +155,66 @@ export function review(main, params, ctx) {
           main.innerHTML = card('', empty('Pengajuan tidak ditemukan', '', '<a class="btn" href="#/pengajuan">Kembali</a>'));
           return { title: 'Tidak ditemukan', crumbs: [...crumbs, { label: 'Tidak ditemukan' }] };
      }
-     const step = params.langkah ? Math.max(0, Math.min(4, Number(params.langkah) - 1)) : defaultStep(d);
      const b = d.borrower;
      const ctxAudit = { borrower: b, documents: d.documents };
-     const prog = auditProgress(d.audit, ctxAudit);
-     const done = [d.documents.length > 0 && d.documents.every((x) => x.verified), prog.financial.complete, prog.collateral.complete, prog.interview.complete, ['scored', 'offered', 'accepted', 'declined', 'decided', 'rejected'].includes(d.status)];
-     const href = (i) => `#/pengajuan/${encodeURIComponent(d.id)}?langkah=${i + 1}`;
+     const { prog, counts } = progressOf(d);
      const locked = !EDITABLE.includes(d.status);
-     const body = [stepDocs, stepFinancial, stepCollateral, stepInterview, stepResult][step](d, { prog, locked, ctxAudit });
      const sector = SECTOR_OPTIONS.find((s) => s.key === b.sektor)?.label || b.sektor;
+     const next = nextTaskHref(d.id);
+     const sheet = [stepDocs, stepFinancial, stepCollateral, stepInterview].map((fn, i) =>
+          `<section id="sec-${SECTIONS[i].key}" data-sec="${SECTIONS[i].key}" class="stack">${fn(d, { prog, locked, ctxAudit })}</section>`).join('');
+     const jump = `<nav class="jump" aria-label="Bagian lembar kerja">${SECTIONS.map((x) => `<button type="button" class="btn btn-sm" data-jump="${x.key}">${esc(x.label)} <span class="num" data-count="${x.key}">${counts[x.key][0]}/${counts[x.key][1]}</span></button>`).join('')}</nav>`;
+     const body = locked
+          ? `${stepResult(d, { prog })}<details class="card more" style="margin-top:14px"><summary>Lembar audit (terkunci)</summary><div style="margin-top:12px">${sheet}</div></details>`
+          : `${d.status === 'need_fix' ? `<div class="callout warn" style="margin-bottom:14px"><strong>Menunggu perbaikan dari pemohon.</strong> ${esc(d.events.at(-1)?.note || '')}</div>` : ''}${jump}<div class="stack">${sheet}</div>
+               <div class="actionbar" role="region" aria-label="Aksi pengajuan">
+                    <div class="actionbar-in"><span data-total aria-live="polite"></span>
+                    <div class="actions">${d.status !== 'need_fix' ? '<button class="btn btn-primary" data-act="verify">Verifikasi &amp; hitung</button>' : ''}
+                    ${d.status === 'submitted' ? '<button class="btn" data-act="request_fix">Minta perbaikan</button>' : ''}<button class="btn btn-danger" data-act="reject">Tolak</button></div></div></div>`;
      main.innerHTML = `
-     <div class="page-head"><div><h1>${esc(b.nama || d.id)}</h1><p>${esc(sector || '')} · diajukan ${rp(d.amount_requested)} / ${esc(b.tenor_bulan)} bulan · masuk ${esc(date(d.submitted_at))}</p></div>${statusPill(d.status)}</div>
-     <ol class="steps" aria-label="Langkah peninjauan">${REVIEW_STEPS.map((label, i) => `<li class="${i === step ? 'now' : done[i] ? 'done' : ''}"${i === step ? ' aria-current="step"' : ''}><a href="${href(i)}"><span class="n">${esc(label)}</span>${done[i] ? ' ✓' : ''}</a></li>`).join('')}</ol>
-     ${locked && step < 4 ? `<p class="callout small" style="margin-bottom:14px">Tahap ini terkunci karena pengajuan berstatus <strong>${esc(APPLICATION_STATUS_LABEL[d.status])}</strong>. ${d.status === 'scored' ? 'Buka ulang penilaian di langkah Hasil untuk mengubahnya.' : ''}</p>` : ''}
-     <div class="split"><div class="stack" data-step>${body}</div>
+     <div class="page-head"><div><h1>${esc(b.nama || d.id)}</h1><p>${esc(sector || '')} · diajukan ${rp(d.amount_requested)} / ${esc(b.tenor_bulan)} bulan · masuk ${esc(date(d.submitted_at))}</p></div>
+          <div class="actions">${statusPill(d.status)}${next ? `<a class="btn btn-sm" href="${esc(next.href)}" title="${esc(next.name)}">Berikutnya →</a>` : ''}</div></div>
+     <div class="split"><div data-main-col>${body}</div>
           <aside class="stack">
-               ${card('Kemajuan audit', rows([['Dokumen terverifikasi', `${d.documents.filter((x) => x.verified).length}/${d.documents.length}`], ['Audit keuangan', `${prog.financial.done}/${prog.financial.total}`], ['Agunan', `${prog.collateral.done}/${prog.collateral.total}`], ['Wawancara', `${prog.interview.done}/${prog.interview.total}`]]) + (step < 4 ? `<div class="actions" style="margin-top:12px"><a class="btn btn-primary btn-block" href="${href(step + 1)}">Lanjut: ${esc(REVIEW_STEPS[step + 1])} →</a></div>` : ''), { level: 3 })}
                ${card('Perjalanan', timelineHtml(d), { level: 3 })}
                ${d.events.length ? card('Catatan riwayat', `<ul class="list small">${d.events.slice(-6).reverse().map((e) => `<li><div class="main">${esc(APPLICATION_STATUS_LABEL[e.to] || e.action)}${e.note ? `<div class="meta">${esc(e.note)}</div>` : ''}</div><span class="meta">${esc(date(e.at))}</span></li>`).join('')}</ul>`, { level: 3 }) : ''}
           </aside></div>`;
      bindReview(main, d, ctx);
-     return { title: b.nama || 'Tinjau', crumbs: [...crumbs, { label: b.nama || d.id, href: href(defaultStep(d)) }, { label: REVIEW_STEPS[step] }] };
+     paintProgress(main, d.id);
+     return { title: b.nama || 'Tinjau', crumbs: [...crumbs, { label: b.nama || d.id }] };
+}
+
+/** Perbarui hitungan progres & tombol tanpa memuat ulang halaman (posisi gulir tetap). */
+function paintProgress(main, id) {
+     const d = A.reviewDetail(id);
+     if (!d) return;
+     const { prog, counts } = progressOf(d);
+     for (const [k, [done, total]] of Object.entries(counts)) {
+          const el = main.querySelector(`[data-count="${k}"]`);
+          if (el) { el.textContent = `${done}/${total}`; el.closest('button')?.classList.toggle('is-done', total > 0 && done === total); }
+     }
+     const all = Object.values(counts).reduce((a, [x, y]) => [a[0] + x, a[1] + y], [0, 0]);
+     const total = main.querySelector('[data-total]');
+     if (total) total.innerHTML = prog.complete && counts.docs[0] === counts.docs[1]
+          ? `<strong>Semua ${all[1]} butir selesai</strong> — siap dinilai`
+          : `<strong>${all[0]}/${all[1]}</strong> butir selesai${prog.complete ? '' : ' · audit belum lengkap perlu justifikasi'}`;
 }
 
 /* ---- 1 Dokumen ---- */
 function stepDocs(d, { locked }) {
      const b = d.borrower;
      const auto = automaticAudit(b, d.documents);
-     return card('Periksa dokumen', `<p class="muted small">Buka setiap berkas, cocokkan dengan aslinya, lalu tandai terverifikasi. Dokumen terverifikasi menaikkan keyakinan data.</p>
+     return card('Periksa dokumen', `${bulk('docs', locked || !d.documents.length, 'Tandai semua terverifikasi')}<p class="muted small">Buka setiap berkas, cocokkan dengan aslinya, lalu tandai terverifikasi. Dokumen terverifikasi menaikkan keyakinan data.</p>
           ${d.documents.length ? `<ul class="list">${d.documents.map((doc) => `<li><div class="main"><strong>${esc(A.VERIFICATION_SOURCES.find((s) => s.key === doc.source_key)?.label || doc.source_key)}</strong>
                <div class="meta">${esc(doc.filename)}${doc.example ? ' · contoh tanpa isi berkas' : ''}${doc.extraction?.message ? ` · ${esc(doc.extraction.message)}` : ''}</div></div>
                ${doc.has_file ? `<button class="btn btn-sm btn-quiet" data-open="${esc(doc.id)}">Buka</button>` : ''}
-               <label class="check" style="border:0;padding:0"><input type="checkbox" data-verify="${esc(doc.id)}" ${doc.verified ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>Terverifikasi</span></label></li>`).join('')}</ul>` : empty('Belum ada dokumen', 'Minta pemohon melampirkan dokumen lewat "Minta perbaikan" di langkah Hasil.')}
+               <label class="check" style="border:0;padding:0"><input type="checkbox" data-verify="${esc(doc.id)}" ${doc.verified ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>Terverifikasi</span></label></li>`).join('')}</ul>` : empty('Belum ada dokumen', 'Minta pemohon melampirkan dokumen lewat tombol "Minta perbaikan".')}
           ${auto.missing_files.length ? `<p class="callout warn small">Berkas wajib belum ada: ${auto.missing_files.map(esc).join(', ')}.</p>` : ''}`)
           + card('Data dari pemohon', rows([['Jumlah diajukan', rp(b.plafon_diajukan)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Cicil setiap', esc(b.periode_angsuran || 'Sesuai saran')], ['Keperluan', esc(b.tujuan_kredit || '—')], ['NPWP / NIB', `${esc(b.npwp || '—')} / ${esc(b.nib || '—')}`], ['Persetujuan pemeriksaan', d.consent?.accepted ? `Ya, ${esc(date(d.consent.accepted_at))}` : 'Belum']])
                + `<details class="more"><summary>Angka laporan keuangan</summary>${rows(FINANCE_FIELDS.map((f) => [f.label, rp(b.keuangan?.[f.key])]))}</details>`);
 }
+
+const bulk = (key, disabled, label) => (disabled ? '' : `<div class="actions end" style="margin:-4px 0 6px"><button type="button" class="btn btn-sm" data-bulk="${key}">✓ ${esc(label)}</button></div>`);
 
 /* ---- 2 Audit keuangan ---- */
 function checklist(section, list, d, locked, autoMap = {}) {
@@ -166,7 +230,7 @@ function stepFinancial(d, { locked, ctxAudit }) {
      const auto = automaticAudit(ctxAudit.borrower, ctxAudit.documents);
      const autoMap = Object.fromEntries(auto.checks.map((c) => [c.key, c.passed]));
      const cmp = auto.comparisons.filter((c) => !c.matches);
-     return card('Audit laporan keuangan', `<p class="muted small">Semua butir harus tercentang. Dua butir pertama diperiksa otomatis dari angka laporan.</p>
+     return card('Audit laporan keuangan', `${bulk('financial', locked, 'Centang semua yang sudah diperiksa')}<p class="muted small">Semua butir harus tercentang. Dua butir pertama diperiksa otomatis dari angka laporan.</p>
           ${checklist('financial', FINANCIAL_CHECKLIST, d, locked, autoMap)}
           ${cmp.length ? `<p class="callout warn small">${cmp.length} angka berbeda dari berkas sumber: ${cmp.map((c) => `${esc(FINANCE_FIELDS.find((f) => f.key === c.key)?.label || c.key)} (berkas ${rpShort(c.source)}, isian ${rpShort(c.current)})`).join('; ')}.</p>` : auto.document ? '<p class="callout ok small">Angka isian sama dengan berkas laporan sumber.</p>' : ''}
           ${noteField('financial', d, locked)}`);
@@ -182,7 +246,7 @@ function stepCollateral(d, { locked }) {
      return card('Verifikasi agunan', `${a.ketersediaan === 'ada'
           ? rows([['Jenis', esc(COLLATERAL_OPTIONS.find((c) => c.key === a.jenis)?.label || a.jenis || '—')], ['Perkiraan nilai', rp(a.nilai_agunan)], ['Atas nama', esc(a.pemilik || '—')], ['Lokasi / identitas', esc(a.keterangan || '—')], ['Jaminan setara', d.amount_requested && a.nilai_agunan ? `${pct(d.amount_requested / a.nilai_agunan, 0)} dari pinjaman (LTV)` : '—']])
           : '<p class="callout warn">Pemohon menyatakan tidak ada agunan. Penawaran tanpa agunan memerlukan keputusan manual.</p>'}
-          <div style="margin-top:12px">${checklist('collateral', COLLATERAL_CHECKLIST, d, locked)}</div>${noteField('collateral', d, locked)}`);
+          <div style="margin-top:12px">${bulk('collateral', locked || a.ketersediaan !== 'ada', 'Centang semua yang sudah diperiksa')}${checklist('collateral', COLLATERAL_CHECKLIST, d, locked)}</div>${noteField('collateral', d, locked)}`);
 }
 
 /* ---- 4 Wawancara ---- */
@@ -194,7 +258,8 @@ function stepInterview(d, { locked }) {
                <p class="hint">${esc(q.help || '')}</p>
                <div class="scale">${AUDIT_SCORE_OPTIONS.map((o) => `<label><input type="radio" name="iv-${esc(q.key)}" data-score="${esc(q.key)}" value="${o.value}" ${cur === o.value ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>${esc(o.label.split(' — ')[0])}</span></label>`).join('')}
                ${cur !== null && !AUDIT_SCORE_OPTIONS.some((o) => o.value === cur) ? `<span class="pill plain">Nilai tersimpan ${cur}</span>` : ''}</div></fieldset>`;
-     }).join(''), { sub: `${g.items.filter((q) => score01(scores[q.key]) !== null).length}/${g.items.length} dinilai` })).join('')
+     }).join(''))).join('')
+          + (locked ? '' : '<p class="small muted">Tip: pilih nilai lalu tekan Tab untuk pindah ke pertanyaan berikutnya; panah kiri/kanan mengganti nilai.</p>')
           + card('', noteField('interview', d, locked));
 }
 
@@ -277,16 +342,35 @@ function bindReview(main, d, ctx) {
      const id = d.id;
      const refresh = () => ctx.refresh();
      main.querySelectorAll('[data-verify]').forEach((el) => el.addEventListener('change', () => {
-          try { A.setDocumentVerified(id, el.dataset.verify, el.checked); toast(el.checked ? 'Dokumen ditandai terverifikasi.' : 'Tanda verifikasi dibatalkan.'); refresh(); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
+          try { A.setDocumentVerified(id, el.dataset.verify, el.checked); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
      }));
      main.querySelectorAll('[data-audit]').forEach((el) => el.addEventListener('change', () => {
-          try { A.setAuditCheck(id, el.dataset.audit, el.dataset.key, el.checked); refresh(); } catch (err) { toast(err.message, 'bad'); }
+          try { A.setAuditCheck(id, el.dataset.audit, el.dataset.key, el.checked); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
      }));
      main.querySelectorAll('[data-audit-note]').forEach((el) => el.addEventListener('change', () => {
           try { A.setAuditNote(id, el.dataset.auditNote, el.value); toast('Catatan tersimpan.'); } catch (err) { toast(err.message, 'bad'); }
      }));
      main.querySelectorAll('[data-score]').forEach((el) => el.addEventListener('change', () => {
-          try { A.setAuditScore(id, el.dataset.score, el.value); refresh(); } catch (err) { toast(err.message, 'bad'); }
+          try { A.setAuditScore(id, el.dataset.score, el.value); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); }
+     }));
+     main.querySelectorAll('[data-bulk]').forEach((btn) => btn.addEventListener('click', () => {
+          const sec = btn.dataset.bulk;
+          const boxes = [...main.querySelectorAll(sec === 'docs' ? '[data-verify]' : `[data-audit="${sec}"]`)].filter((el) => !el.disabled && !el.checked);
+          try {
+               for (const el of boxes) {
+                    if (sec === 'docs') A.setDocumentVerified(id, el.dataset.verify, true);
+                    else A.setAuditCheck(id, sec, el.dataset.key, true);
+                    el.checked = true;
+               }
+               paintProgress(main, id);
+               toast(boxes.length ? `${boxes.length} butir ditandai.` : 'Semua butir sudah tercentang.');
+               track('bulk_check', { sec, n: boxes.length });
+          } catch (err) { toast(err.message, 'bad'); }
+     }));
+     main.querySelectorAll('[data-jump]').forEach((btn) => btn.addEventListener('click', () => {
+          const el = main.querySelector(`#sec-${btn.dataset.jump}`);
+          el?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+          el?.querySelector('input:not([disabled]), button')?.focus({ preventScroll: true });
      }));
      main.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', async () => {
           await busy(el, async () => {
@@ -312,14 +396,14 @@ function bindReview(main, d, ctx) {
           if (!out) return;
           if (kind === 'verify') {
                const res = await busy(btn, () => A.verifyAndScore(id, out.note), { fail: 'Belum bisa diverifikasi' });
-               if (res) { toast(res.warning || (res.to === 'scored' ? 'Penilaian selesai.' : 'Pengajuan terverifikasi.'), res.warning ? 'warn' : 'ok', 5000); track('review_scored'); location.hash = `#/pengajuan/${encodeURIComponent(id)}?langkah=5`; refresh(); }
+               if (res) { toast(res.warning || (res.to === 'scored' ? 'Penilaian selesai.' : 'Pengajuan terverifikasi.'), res.warning ? 'warn' : 'ok', 5000); track('review_scored'); window.scrollTo(0, 0); refresh(); }
                return;
           }
           const decisionValue = kind === 'decide' ? (d.result?.decision?.decision || 'REVIEW') : undefined;
           const res = await busy(btn, () => A.lenderAction(id, kind, { note: out.note, decision: decisionValue, force: kind === 'decide' && !!d.intake?.gate?.auto_reject }), {
                ok: { request_fix: 'Permintaan perbaikan terkirim ke pemohon.', reject: 'Pengajuan ditolak.', reassess: 'Penilaian dibuka ulang.', decide: 'Keputusan tercatat.' }[kind], fail: 'Gagal'
           });
-          if (res !== undefined) { track('review_action', { kind }); location.hash = kind === 'reassess' ? `#/pengajuan/${encodeURIComponent(id)}?langkah=4` : `#/pengajuan/${encodeURIComponent(id)}`; refresh(); }
+          if (res !== undefined) { track('review_action', { kind }); window.scrollTo(0, 0); refresh(); }
      }));
 
      main.querySelector('[data-prepare]')?.addEventListener('click', async (e) => {

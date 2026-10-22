@@ -52,7 +52,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 140px; scroll-padding-bottom: 150px; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--font); }
 h1, h2, h3, h4 { color: var(--strong); line-height: 1.25; margin: 0 0 .4em; }
 h1 { font-size: clamp(1.45rem, 3.2vw, 1.9rem); }
@@ -287,6 +287,17 @@ dialog.sheet form { padding: 20px; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pop { from { transform: scale(.3); } 70% { transform: scale(1.15); } to { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ------------------------------------------------------ lembar kerja ---- */
+.jump { position: sticky; top: 64px; z-index: 5; display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0 10px; background: var(--bg); }
+.jump .btn.is-done { border-color: var(--ok); color: var(--ok); }
+.jump .btn.is-done::after { content: "✓"; }
+.actionbar { position: sticky; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 6; margin-top: 14px; }
+@media (min-width: 880px) { .actionbar { bottom: 12px; } .jump { top: 66px; } }
+.actionbar-in { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; box-shadow: 0 6px 24px rgb(15 42 74 / 14%); }
+.bulkbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+table.quick input, table.quick select { min-height: 40px; padding: 6px 8px; }
+table.quick td { vertical-align: middle; }
 
 /* -------------------------------------------------------------- masuk ---- */
 .hero { background: linear-gradient(135deg, var(--navy), #1b3f6e); color: #fff; border-radius: var(--radius); padding: 26px 20px; margin-bottom: 16px; }
