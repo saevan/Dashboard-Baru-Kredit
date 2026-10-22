@@ -120,6 +120,8 @@ docs/REDESIGN_UX.md         cetak biru desain ulang
 - `src/core/intake-config.js` — sumber verifikasi wajib baru **Surat keterangan bank** (validasi rekening koran, bobot 1).
   Rekening koran baru bisa ditandai terverifikasi setelah surat ini terverifikasi (`src/services/applications.js`).
   Tes terkait: `tests/core/confidence.test.js`, `tests/services.test.js`.
+- `src/data/storage.js` — sesi masuk disimpan **per tab** (sessionStorage); localStorage hanya mengingat sesi
+  terakhir sebagai titik awal tab baru. Pemohon dan petugas bisa dibuka di dua tab tanpa saling ikut keluar.
 
 `src/core/` adalah salinan dari `productive-loan-analyzer/src/core`. Bila mesin di repo asal berubah,
 salin ulang folder itu beserta `tests/core/`, lalu jalankan `npm test`. Tes `tests/services.test.js`

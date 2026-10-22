@@ -270,4 +270,4 @@ export function portfolioReport() {
 
 export const exportBackup = () => storage.exportAll();
 export const importBackup = (payload, merge = true) => storage.importAll(payload, { merge });
-export const clearAllData = () => storage.clearAll();
+export const clearAllData = () => { storage.clearAll(); storage.clearSession(); };

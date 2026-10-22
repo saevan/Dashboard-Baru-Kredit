@@ -15,7 +15,7 @@ import { inspectAttachment, FILE_ACCEPT } from '../../core/attachments.js';
 import { getBenchmark } from '../../core/benchmark.js';
 import { loadBenchmarkOverrides, setBenchmarkOverride, removeBenchmarkOverride, clearBenchmarkOverrides } from '../../data/storage.js';
 import { clearAttachmentStorage } from '../../data/attachments.js';
-import { SECTOR_OPTIONS, PROFILE_OPTIONS, COLLATERAL_OPTIONS, SCHEME_OPTIONS, PERIOD_OPTIONS, FINANCE_FIELDS, parseAmount } from '../../services/labels.js';
+import { SECTOR_OPTIONS, PROFILE_OPTIONS, UMKM_PROFILE_OPTIONS, COLLATERAL_OPTIONS, SCHEME_OPTIONS, PERIOD_OPTIONS, FINANCE_FIELDS, parseAmount } from '../../services/labels.js';
 import { esc, rp, rpShort, pct, num, date, card, answer, rows, pill, kpi, empty, field, options, choices, toast, confirmSheet, busy, track, usage, clearUsage, fileBytes, prefs, setPref } from '../ui.js';
 import { seedDemo } from './lender.js';
 import { EWS_WORD } from './customers.js';
@@ -81,7 +81,7 @@ export function manual(main, params) {
           ${card('Usaha & pinjaman', `<div class="form-grid">
                ${field({ id: 'm-nama', label: 'Nama usaha', control: `<input id="m-nama" name="nama" type="text" value="${esc(b.nama)}" required>` })}
                ${field({ id: 'm-sektor', label: 'Bidang usaha', control: `<select id="m-sektor" name="sektor">${options(SECTOR_OPTIONS, b.sektor, 'Pilih bidang')}</select>` })}
-               ${field({ id: 'm-profil', label: 'Profil usaha', control: `<select id="m-profil" name="profil_company">${options(PROFILE_OPTIONS, b.profil_company)}</select>` })}
+               ${field({ id: 'm-profil', label: 'Jenis peminjam', control: `<select id="m-profil" name="profil_company"><optgroup label="UMKM">${options(UMKM_PROFILE_OPTIONS, b.profil_company)}</optgroup><optgroup label="Startup"><option value="startup"${b.profil_company === 'startup' ? ' selected' : ''}>Startup / usaha rintisan</option></optgroup></select>` })}
                ${field({ id: 'm-plafon', label: 'Jumlah pinjaman', hint: 'Contoh: 400 jt', control: `<input id="m-plafon" name="plafon_diajukan" type="text" inputmode="decimal" value="${b.plafon_diajukan ? esc(b.plafon_diajukan.toLocaleString('id-ID')) : ''}">` })}
                ${field({ id: 'm-tenor', label: 'Lama (bulan)', control: `<input id="m-tenor" name="tenor_bulan" type="number" min="1" max="120" value="${esc(b.tenor_bulan)}">` })}
                ${field({ id: 'm-bunga', label: 'Bunga per tahun (%)', control: `<input id="m-bunga" name="bunga" type="number" step="0.25" value="${esc(+(b.bunga_tahunan * 100).toFixed(2))}">` })}

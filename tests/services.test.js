@@ -214,3 +214,25 @@ test('rekening koran hanya bisa diverifikasi setelah surat keterangan bank', () 
      apps.setDocumentVerified(id, skb.id, false);
      assert.equal(apps.reviewDetail(id).documents.find((d) => d.id === rk.id).verified, false, 'ikut batal');
 });
+
+test('akun demo: dokumen pendukung terisi contoh, laporan keuangan tidak; akun biasa tidak', () => {
+     fresh();
+     loginDemo('borrower');
+     const d = apps.blankDraft();
+     d.borrower.nama = 'Toko Demo';
+     apps.saveDraft(d);
+     d.documents = [{ id: 'doc_asli', source_key: 'identitas', filename: 'ktp-asli.pdf', has_file: true, verified: 0 }];
+     apps.saveDraft(d);
+     const added = apps.ensureDemoDocuments(d);
+     assert.equal(added, apps.DEMO_PREFILLED_DOCS.length - 1, 'identitas asli tidak ditimpa');
+     assert.equal(d.documents.find((x) => x.source_key === 'identitas').filename, 'ktp-asli.pdf');
+     assert.ok(!d.documents.some((x) => x.source_key === 'laporan_keuangan'));
+     assert.equal(apps.ensureDemoDocuments(d), 0, 'tidak menambah dua kali');
+
+     registerBorrower({ name: 'Pemohon Asli', email: 'asli@contoh.id', password: 'rahasia1' });
+     const e = apps.blankDraft();
+     e.borrower.nama = 'Toko Asli';
+     apps.saveDraft(e);
+     assert.equal(apps.ensureDemoDocuments(e), 0);
+     assert.equal(e.documents.length, 0);
+});

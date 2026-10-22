@@ -19,6 +19,26 @@ export const SECTOR_OPTIONS = [
      { key: 'IDX-FINANCIALS', label: 'Keuangan (koperasi, lembaga keuangan)' }
 ];
 
+/**
+ * Jenis peminjam (pilihan pertama di formulir). Startup → profil mesin `startup`
+ * (bobot 40% angka / 60% kualitatif); UMKM → salah satu profil UMKM di bawah.
+ */
+export const BORROWER_TYPES = [
+     { key: 'umkm', label: 'UMKM', hint: 'Usaha mikro, kecil, atau menengah yang sudah berjalan' },
+     { key: 'startup', label: 'Startup', hint: 'Usaha rintisan / tahap awal, bertumpu pada tim & model bisnis' }
+];
+
+/** Profil mesin untuk UMKM (kunci = data/company-profiles.js). */
+export const UMKM_PROFILE_OPTIONS = [
+     { key: 'ukm_mapan', label: 'Usaha sudah berjalan stabil' },
+     { key: 'manufacturing', label: 'Pabrik / produksi' },
+     { key: 'trade', label: 'Perdagangan / distribusi' }
+];
+
+/** Jenis peminjam dari profil mesin yang tersimpan. */
+export const borrowerType = (profilCompany) => (profilCompany === 'startup' ? 'startup' : 'umkm');
+export const borrowerTypeLabel = (profilCompany) => (profilCompany === 'startup' ? 'Startup' : 'UMKM');
+
 export const PROFILE_OPTIONS = [
      { key: 'ukm_mapan', label: 'Usaha sudah berjalan stabil' },
      { key: 'startup', label: 'Usaha rintisan / baru mulai' },

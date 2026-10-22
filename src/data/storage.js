@@ -379,19 +379,53 @@ export function saveUsers(list) {
      return list;
 }
 
-/** Sesi aktif (login) atau `null`. */
+// Dashboard-Baru-Kredit: sesi disimpan PER TAB (sessionStorage) agar pemohon & petugas
+// bisa dibuka di dua tab tanpa saling menimpa/ikut keluar. localStorage hanya menyimpan
+// sesi terakhir sebagai titik awal tab baru. Tanpa sessionStorage (mis. Node), perilaku lama.
+const tabStore = (() => {
+     try { return typeof sessionStorage !== 'undefined' && sessionStorage ? sessionStorage : null; } catch { return null; }
+})();
+
+function readTabSession() {
+     try {
+          const raw = tabStore?.getItem(KEYS.session);
+          return raw ? JSON.parse(raw) : null;
+     } catch {
+          return null;
+     }
+}
+
+/** Sesi aktif (login) tab ini, atau `null`. */
 export function loadSession() {
+     if (tabStore) {
+          const own = readTabSession();
+          if (own && typeof own === 'object') return own;
+          if (tabStore.getItem(KEYS.session + '.out')) return null; // tab ini sudah keluar
+          const last = readJSON(KEYS.session, null); // tab baru: mulai dari sesi terakhir
+          if (last && typeof last === 'object') {
+               try { tabStore.setItem(KEYS.session, JSON.stringify(last)); } catch { /* opsional */ }
+               return last;
+          }
+          return null;
+     }
      const raw = readJSON(KEYS.session, null);
      return raw && typeof raw === 'object' ? raw : null;
 }
 
 export function saveSession(session) {
-     if (session && typeof session === 'object') writeJSON(KEYS.session, session);
-     else removeRaw(KEYS.session);
-     return session || null;
+     if (!(session && typeof session === 'object')) { clearSession(); return null; }
+     if (tabStore) {
+          try { tabStore.setItem(KEYS.session, JSON.stringify(session)); tabStore.removeItem(KEYS.session + '.out'); } catch { /* opsional */ }
+     }
+     writeJSON(KEYS.session, session);
+     return session;
 }
 
+/** Keluar dari tab ini saja; tab lain tetap masuk dengan sesinya sendiri. */
 export function clearSession() {
+     if (tabStore) {
+          try { tabStore.removeItem(KEYS.session); tabStore.setItem(KEYS.session + '.out', '1'); } catch { /* opsional */ }
+     }
      removeRaw(KEYS.session);
 }
 

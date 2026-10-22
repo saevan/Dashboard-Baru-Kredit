@@ -17,7 +17,7 @@ import { automaticAudit } from '../../core/audit-automation.js';
 import { buildOfferOptions, assessOffer, offerEligibility } from '../../core/offer.js';
 import { priorityReasons } from '../../core/dashboard-insights.js';
 import { WORK_FOCUS, workFocus } from '../../core/workflow.js';
-import { SECTOR_OPTIONS, FINANCE_FIELDS, COLLATERAL_OPTIONS } from '../../services/labels.js';
+import { SECTOR_OPTIONS, FINANCE_FIELDS, COLLATERAL_OPTIONS, borrowerType, borrowerTypeLabel } from '../../services/labels.js';
 import { esc, rp, rpShort, pct, date, card, answer, rows, pill, kpi, steps, empty, toast, confirmSheet, busy, track } from '../ui.js';
 import { offerTermsHtml, timelineHtml } from '../widgets.js';
 import { resultSummary, analystDetail } from '../result.js';
@@ -25,13 +25,14 @@ import { resultSummary, analystDetail } from '../result.js';
 const STATUS_TONE = { submitted: 'info', need_fix: 'warn', verified: 'info', scored: 'warn', offered: 'info', accepted: 'ok', declined: '', decided: 'ok', rejected: 'bad' };
 const statusPill = (s) => pill(APPLICATION_STATUS_LABEL[s] || s, STATUS_TONE[s] || '');
 const nameOf = (a) => (a.payload?.borrower || a.borrower || {}).nama || a.id;
+const typePill = (profil) => pill(borrowerTypeLabel(profil), borrowerType(profil) === 'startup' ? 'info plain' : 'plain');
 
 /** Tautan tugas mesin lama (#/applications, #/borrower) → rute baru. */
 const taskHref = (row) => row.task.href.replace('#/applications/', '#/pengajuan/').replace('#/borrower/', '#/nasabah/');
 
 function taskRow(row) {
      const reasons = priorityReasons(row).filter((r) => !r.startsWith('Belum ada penanggung'));
-     return `<li><div class="main"><a href="${esc(taskHref(row))}">${esc(nameOf(row))}</a>
+     return `<li><div class="main"><a href="${esc(taskHref(row))}">${esc(nameOf(row))}</a> ${typePill((row.payload?.borrower || row.borrower || {}).profil_company)}
           <div class="meta">${rp(row.amount_requested ?? row.payload?.borrower?.plafon_diajukan)} · ${row.age_days === null ? '' : `${row.age_days} hari di tahap ini`}${reasons.length ? ` · <strong>${esc(reasons.join(' · '))}</strong>` : ''}</div></div>
           ${statusPill(row.status)}${row.task.label === 'Siapkan fasilitas'
                ? `<button class="btn btn-sm btn-primary" data-prepare-row="${esc(row.id)}">Siapkan fasilitas</button>`
@@ -174,7 +175,7 @@ export function review(main, params, ctx) {
                     ${d.status === 'submitted' ? '<button class="btn" data-act="request_fix">Minta perbaikan</button>' : ''}<button class="btn btn-danger" data-act="reject">Tolak</button></div></div></div>`;
      main.innerHTML = `
      <div class="page-head"><div><h1>${esc(b.nama || d.id)}</h1><p>${esc(sector || '')} · diajukan ${rp(d.amount_requested)} / ${esc(b.tenor_bulan)} bulan · masuk ${esc(date(d.submitted_at))}</p></div>
-          <div class="actions">${statusPill(d.status)}${next ? `<a class="btn btn-sm" href="${esc(next.href)}" title="${esc(next.name)}">Berikutnya →</a>` : ''}</div></div>
+          <div class="actions">${typePill(b.profil_company)}${statusPill(d.status)}${next ? `<a class="btn btn-sm" href="${esc(next.href)}" title="${esc(next.name)}">Berikutnya →</a>` : ''}</div></div>
      <div class="split"><div data-main-col>${body}</div>
           <aside class="stack">
                ${card('Perjalanan', timelineHtml(d), { level: 3 })}

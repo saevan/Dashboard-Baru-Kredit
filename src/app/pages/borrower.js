@@ -8,7 +8,7 @@
 import { session } from '../../services/core.js';
 import * as A from '../../services/applications.js';
 import { SAMPLE_REPORT_URL } from '../../services/demo.js';
-import { SECTOR_OPTIONS, PROFILE_OPTIONS, COLLATERAL_OPTIONS, PERIOD_OPTIONS, PURPOSE_OPTIONS, FINANCE_FIELDS, DOCUMENT_HINT, parseAmount } from '../../services/labels.js';
+import { SECTOR_OPTIONS, BORROWER_TYPES, UMKM_PROFILE_OPTIONS, borrowerType, borrowerTypeLabel, COLLATERAL_OPTIONS, PERIOD_OPTIONS, PURPOSE_OPTIONS, FINANCE_FIELDS, DOCUMENT_HINT, parseAmount } from '../../services/labels.js';
 import { VERIFICATION_SOURCES, INTAKE_CONFIG } from '../../core/intake-config.js';
 import { FILE_ACCEPT } from '../../core/attachments.js';
 import { parseImprovementSteps } from '../../core/improvement-note.js';
@@ -43,7 +43,7 @@ export function home(main) {
           ? answer({ eyebrow: latest.borrower?.nama || latest.payload?.borrower?.nama || 'Pengajuan terakhir', title: latest.feedback.title, text: latest.feedback.message, tone: latest.feedback.tone, actions: nextAction(latest) + (apps.length > 1 ? '<a class="btn btn-quiet" href="#/pengajuan">Semua pengajuan</a>' : '') })
           : answer({ eyebrow: 'Mulai di sini', title: 'Belum ada pengajuan', text: 'Isi data usaha, kirim laporan keuangan apa adanya, lalu tunggu penawaran dari petugas. Sekitar 10 menit.', actions: '<a class="btn btn-primary" href="#/ajukan">Ajukan pinjaman</a>' })}
      <div class="split" style="margin-top:14px">
-          ${card('Hitung perkiraan cicilan', simulatorHtml({ id: 'home' }))}
+          ${card('Hitung perkiraan cicilan', simulatorHtml({ id: 'home', showCost: false }))}
           <div class="stack">
                ${card('Cara kerjanya', `<ol class="timeline">
                     <li class="${apps.length ? 'done' : 'now'}">Isi data usaha &amp; jumlah pinjaman</li>
@@ -84,6 +84,7 @@ export function apply(main, params, ctx) {
      const step = Math.max(0, Math.min(3, Number(params.langkah || 1) - 1));
      wiz.step = step;
      const d = wiz.draft;
+     A.ensureDemoDocuments(d);
      const fixing = d.status === 'need_fix';
      const lenderNote = fixing ? A.myApplicationDetail(d.id)?.feedback?.note : '';
      const body = [stepUsaha, stepKeuangan, stepJaminan, stepKirim][step](d);
@@ -117,7 +118,8 @@ function stepUsaha(d) {
      return card('Tentang usaha Anda', `<div class="form-grid">
           ${field({ id: 'f-nama', label: 'Nama usaha', control: `<input id="f-nama" name="nama" type="text" autocomplete="organization" value="${esc(b.nama)}" required>` })}
           ${field({ id: 'f-sektor', label: 'Bidang usaha', control: `<select id="f-sektor" name="sektor" required>${options(SECTOR_OPTIONS, b.sektor, 'Pilih bidang usaha')}</select>` })}
-          <div class="field span-2"><span class="label">Kondisi usaha</span>${choices('profil_company', PROFILE_OPTIONS, b.profil_company)}</div>
+          <div class="field span-2"><span class="label">Jenis peminjam</span>${choices('jenis_peminjam', BORROWER_TYPES, borrowerType(b.profil_company))}</div>
+          <div class="field span-2" data-umkm-sub ${borrowerType(b.profil_company) === 'umkm' ? '' : 'hidden'}><span class="label">Jenis usaha UMKM</span>${choices('profil_umkm', UMKM_PROFILE_OPTIONS, b.profil_company === 'startup' ? 'ukm_mapan' : b.profil_company)}</div>
      </div>`) + card('Pinjaman yang dibutuhkan', `<div class="form-grid">
           <div class="field money"><label for="f-plafon">Jumlah pinjaman</label><p class="hint">Contoh: 400 jt, 1,2 M, atau 400000000</p>
                <input id="f-plafon" name="plafon_diajukan" type="text" inputmode="decimal" value="${b.plafon_diajukan ? esc(b.plafon_diajukan.toLocaleString('id-ID')) : ''}" data-money required><p class="echo" data-echo aria-live="polite">${b.plafon_diajukan ? rp(b.plafon_diajukan) : ''}</p></div>
@@ -147,6 +149,7 @@ function stepKeuangan(d) {
           : '';
      return card('Kirim laporan keuangan', `
           <p class="muted">Kirim neraca &amp; laba rugi apa adanya. Kami membaca angkanya; Anda cukup memeriksa di bawah.</p>
+          ${A.isDemoBorrower() ? '<p class="callout small"><strong>Akun demo:</strong> hanya laporan keuangan yang perlu diunggah — dokumen lain sudah terisi contoh.</p>' : ''}
           <div class="drop" data-drop>
                <input type="file" accept="${FILE_ACCEPT}" aria-label="Pilih berkas laporan keuangan">
                ${doc ? `<p><span class="check-anim" aria-hidden="true">✓</span> <strong>${esc(doc.filename)}</strong></p><p class="small muted">${esc(doc.extraction?.message || '')}</p>` : '<p><strong>Seret berkas ke sini</strong> atau</p>'}
@@ -175,11 +178,12 @@ function stepJaminan(d) {
                ${field({ id: 'ag-pemilik', label: 'Atas nama', control: `<input id="ag-pemilik" name="ag.pemilik" type="text" value="${esc(a.pemilik || '')}">` })}
                ${field({ id: 'ag-ket', label: 'Lokasi / nomor identitas', hint: 'Misal alamat tanah, nomor BPKB', control: `<input id="ag-ket" name="ag.keterangan" type="text" value="${esc(a.keterangan || '')}">` })}
           </div></div>`) + card('Dokumen pendukung', `
+          ${A.isDemoBorrower() ? '<p class="callout ok small"><strong>Akun demo:</strong> dokumen pendukung sudah terisi contoh supaya presentasi lebih cepat. Anda tetap bisa menggantinya dengan berkas sungguhan.</p>' : ''}
           <p class="muted small">Dokumen wajib membantu pengajuan diproses lebih cepat. Bisa menyusul bila diminta petugas.</p>
           <ul class="list">${docs.map((s) => {
                const doc = d.documents.find((x) => x.source_key === s.key);
                return `<li><div class="main"><strong>${esc(s.label)}</strong> ${s.mandatory ? pill('Wajib', 'warn') : pill('Opsional', 'plain')}
-                    <div class="meta">${doc ? `✓ ${esc(doc.filename)}` : esc(DOCUMENT_HINT[s.key] || '')}</div></div>
+                    <div class="meta">${doc ? `✓ ${esc(doc.filename)}${doc.example ? ' · contoh akun demo' : ''}` : esc(DOCUMENT_HINT[s.key] || '')}</div></div>
                     <label class="btn btn-sm">${doc ? 'Ganti' : 'Unggah'}<input type="file" accept="${FILE_ACCEPT}" data-doc="${esc(s.key)}" class="sr-only"></label></li>`;
           }).join('')}</ul>`);
 }
@@ -192,7 +196,7 @@ function stepKirim(d) {
      const missingDocs = VERIFICATION_SOURCES.filter((s) => s.mandatory && !d.documents.some((x) => x.source_key === s.key));
      const sector = SECTOR_OPTIONS.find((s) => s.key === b.sektor)?.label || b.sektor;
      const ag = b.agunan || {};
-     return card('Usaha & pinjaman', rows([['Nama usaha', esc(b.nama)], ['Bidang', esc(sector)], ['Jumlah', rp(b.plafon_diajukan)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Cicil setiap', esc(PERIOD_OPTIONS.find((p) => p.key === b.periode_angsuran)?.label || 'Sesuai saran')]]), { actions: edit(1) })
+     return card('Usaha & pinjaman', rows([['Nama usaha', esc(b.nama)], ['Jenis peminjam', esc(borrowerTypeLabel(b.profil_company))], ['Bidang', esc(sector)], ['Jumlah', rp(b.plafon_diajukan)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Cicil setiap', esc(PERIOD_OPTIONS.find((p) => p.key === b.periode_angsuran)?.label || 'Sesuai saran')]]), { actions: edit(1) })
           + card('Laporan keuangan', rows(FINANCE_FIELDS.filter((f) => f.min).map((f) => [f.label, rp(b.keuangan?.[f.key])])), { actions: edit(2) })
           + card('Jaminan & dokumen', rows([['Jaminan', ag.ketersediaan === 'ada' ? `${esc(COLLATERAL_OPTIONS.find((c) => c.key === ag.jenis)?.label || '')} · ${rp(ag.nilai_agunan)}` : 'Tanpa jaminan'], ['Dokumen terlampir', `${d.documents.length} berkas`]])
                + (missingDocs.length ? `<p class="callout warn small" style="margin-top:8px">Belum dilampirkan: ${missingDocs.map((s) => esc(s.label)).join(', ')}. Anda tetap bisa mengirim; petugas mungkin meminta menyusul.</p>` : ''), { actions: edit(3) })
@@ -209,7 +213,8 @@ function collect(form, d) {
      if (get('nama')) {
           b.nama = val('nama').trim();
           b.sektor = val('sektor');
-          b.profil_company = form.querySelector('[name=profil_company]:checked')?.value || b.profil_company;
+          const jenis = form.querySelector('[name=jenis_peminjam]:checked')?.value || borrowerType(b.profil_company);
+          b.profil_company = jenis === 'startup' ? 'startup' : form.querySelector('[name=profil_umkm]:checked')?.value || 'ukm_mapan';
           b.plafon_diajukan = parseAmount(val('plafon_diajukan'));
           b.tenor_bulan = val('tenor_bulan') === '' ? null : Number(val('tenor_bulan'));
           b.periode_angsuran = form.querySelector('[name=periode_angsuran]:checked')?.value || b.periode_angsuran || '';
@@ -252,6 +257,9 @@ function bindWizard(main, ctx) {
           const echo = input.parentElement.querySelector('[data-echo]');
           if (echo) echo.textContent = input.value.trim() === '' ? '' : n === null ? 'Format belum dikenali' : rp(n);
      }));
+     form.querySelectorAll('[name=jenis_peminjam]').forEach((r) => r.addEventListener('change', () => {
+          form.querySelector('[data-umkm-sub]').hidden = r.value !== 'umkm';
+     }));
      form.querySelectorAll('[name="ag.ketersediaan"]').forEach((r) => r.addEventListener('change', () => {
           form.querySelector('[data-ag-detail]').hidden = r.value !== 'ada';
      }));
@@ -269,7 +277,7 @@ function bindWizard(main, ctx) {
           if (err) { wiz.error = err; track('apply_error', { step: wiz.step + 1 }); return rerender(); }
           wiz.error = '';
           if (wiz.step < 3) {
-               const ok = await busy(e.submitter, () => A.saveDraft(d), { fail: 'Belum tersimpan' });
+               const ok = await busy(e.submitter, () => { A.saveDraft(d); A.ensureDemoDocuments(d); return true; }, { fail: 'Belum tersimpan' });
                if (ok === undefined) return;
                track('apply_step', { step: wiz.step + 2 });
                return go(wiz.step + 1);

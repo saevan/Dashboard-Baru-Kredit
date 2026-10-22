@@ -14,8 +14,8 @@ const UNIT = { harian: 'hari', mingguan: 'minggu', bulanan: 'bulan' };
 
 /* ---------------------------------------------------- simulasi cicilan --- */
 
-export function simulatorHtml({ plafon = 100_000_000, tenor = 12, bunga = 14, id = 'sim' } = {}) {
-     return `<form class="sim" data-sim="${esc(id)}" novalidate>
+export function simulatorHtml({ plafon = 100_000_000, tenor = 12, bunga = 14, id = 'sim', showCost = true } = {}) {
+     return `<form class="sim" data-sim="${esc(id)}"${showCost ? '' : ' data-no-cost'} novalidate>
           <div class="form-grid">
                <div class="field"><label for="${id}-plafon">Jumlah pinjaman (Rp)</label>
                     <input id="${id}-plafon" name="plafon" type="number" inputmode="numeric" min="1" max="${POLICY.maxPlafon}" step="1000000" value="${plafon}"></div>
@@ -46,7 +46,7 @@ export function bindSimulator(root) {
                <div class="kpi"><b>${rp(r.inst.first_payment)}</b><span>Cicilan per bulan</span></div>
                <div class="kpi"><b>${rp(r.inst.total_interest)}</b><span>Total bunga</span></div>
                <div class="kpi"><b>${rp(r.inst.total_payment)}</b><span>Total dibayar</span></div></div>
-               ${costLine(r.cost)}
+               ${form.hasAttribute('data-no-cost') ? '' : costLine(r.cost)}
                <p class="small muted">Usaha seukuran ini biasanya menyisihkan uang <strong>${esc(r.periodicityLabel.toLowerCase())}</strong> (${esc(r.segment.label)}). Simulasi bukan penawaran; belum termasuk biaya admin, provisi, asuransi, atau denda.</p>`;
      };
      form.addEventListener('input', (e) => { if (e.target.name === 'periodicity') touched = true; paint(); });

@@ -47,6 +47,7 @@ import { improvementNote, IMPROVEMENT_NOTE_STAGES } from '../core/improvement-no
 import { validateOfferSelection, normalizeOffer } from '../core/offer.js';
 import { queueRows } from '../core/workflow.js';
 import { applicantFeedback } from '../core/applicant-feedback.js';
+import { DEMO_USERS } from '../core/auth-local.js';
 import { analyze } from './core.js';
 
 const nowIso = () => new Date().toISOString();
@@ -182,6 +183,33 @@ export async function attachDocument(draft, sourceKey, bytes, filename) {
      }
      const fill = autoFill(draft, document);
      return { document, ...fill };
+}
+
+/* ---- Akun demo: dokumen pendukung terisi contoh (mempersingkat presentasi) ---- */
+
+/** Dokumen yang diisi contoh untuk akun demo; laporan keuangan tetap diunggah sungguhan. */
+export const DEMO_PREFILLED_DOCS = ['identitas', 'legalitas', 'rekening_koran', 'surat_keterangan_bank', 'faktur_pajak', 'slik_ojk', 'agunan'];
+
+/** Sesi pemohon memakai akun demo bawaan (bukan akun yang didaftarkan pengguna). */
+export function isDemoBorrower(session = loadSession()) {
+     return session?.role === 'borrower' && DEMO_USERS.some((u) => u.role === 'borrower' && u.email === session.email);
+}
+
+/**
+ * Lengkapi draf akun demo dengan dokumen contoh (tanpa isi berkas, ditandai `example`).
+ * Tidak menimpa dokumen yang sudah diunggah. Mengembalikan jumlah dokumen yang ditambahkan.
+ */
+export function ensureDemoDocuments(draft) {
+     if (!isDemoBorrower() || !draft?.id || !['draft', 'need_fix'].includes(draft.status)) return 0;
+     const missing = DEMO_PREFILLED_DOCS.filter((k) => !draft.documents.some((d) => d.source_key === k));
+     if (!missing.length) return 0;
+     const at = nowIso();
+     draft.documents = [...draft.documents, ...missing.map((k) => ({
+          id: uid('doc'), source_key: k, filename: `contoh-${k}.pdf`, size: 120_000, type: 'application/pdf',
+          has_file: false, example: true, verified: 0, created_at: at
+     }))];
+     saveDraft(draft);
+     return missing.length;
 }
 
 /** Foto / PDF hasil scan yang belum menghasilkan angka → layak dibaca OCR. */
