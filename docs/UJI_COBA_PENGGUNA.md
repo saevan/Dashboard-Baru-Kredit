@@ -37,5 +37,5 @@ Durasi per peserta ±20 menit. Satu fasilitator, satu pencatat.
 ## Setelah uji coba
 
 1. Rekap per target PRD: paham hasil (≥ 8/10), waktu (≤ 1 menit), selesai sendiri (≥ 80%), petugas bisa menjelaskan (≥ 4/5), kepuasan (≥ 4).
-2. Kumpulkan **kata yang tidak dipahami** → perbaiki kalimat di `src/simple/translate.js` dan `src/simple/loans.js` (bukan di mesin).
+2. Kumpulkan **kata yang tidak dipahami** → perbaiki kalimat di `src/services/plain.js`, `src/services/labels.js`, dan `src/app/pages/` (bukan di mesin).
 3. Jalankan `npm test` — tes "hasil tetap sama" memastikan perubahan kata tidak mengubah angka.

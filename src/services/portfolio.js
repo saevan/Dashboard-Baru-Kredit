@@ -15,7 +15,8 @@ import { proposeRestructuring, restructuringStatus, monthsElapsed } from '../cor
 import { EWS_PARAMS } from '../core/ews-monitor.js';
 import { queueRows, selectQueue, monitoringSummary, WORK_FOCUS, workFocus } from '../core/workflow.js';
 import { processMetrics } from '../core/dashboard-insights.js';
-import { analyze, getConfig, evaluateEws } from './core.js';
+import { analyze, analysisOptions, getConfig, evaluateEws } from './core.js';
+import { compareScenario } from '../core/what-if.js';
 
 const round2 = (v) => Math.round(Number(v) * 100) / 100;
 const actorName = () => storage.loadSession()?.name || storage.loadSession()?.email || '';
@@ -121,6 +122,11 @@ export function recalculate(id) {
      const fresh = analyze(borrower);
      storage.saveAnalysis(id, fresh);
      return fresh;
+}
+
+/** Simulasi "bagaimana jika" jumlah/lama/bunga/skema berubah (tab Simulasi lama). */
+export function whatIf(borrower, changes) {
+     return compareScenario(borrower, changes, analysisOptions());
 }
 
 export function removeCustomer(id) {

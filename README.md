@@ -1,4 +1,4 @@
-# Dashboard Kredit Sederhana — MEZS.id
+# MEZS.id — Dashboard Kredit (desain ulang)
 
 Dashboard analisis pinjaman usaha untuk **orang awam**: pemilik UMKM dan petugas kredit pemula.
 Hasilnya ditampilkan dengan lampu lalu lintas, peringkat gaya PEFINDO beserta artinya, dan kalimat sehari-hari.
@@ -27,34 +27,34 @@ Contoh Pak Darto (Warung Bakso, fiktif): Mei **Sehat** → Juli **Waspada** (tel
 (telat 45 hari, uang usaha 0,78 kali cicilan). Pilihan keringanan yang disarankan: perpanjang jadi **33 bulan**,
 cicilan **Rp 7,47 jt**, uang usaha 1,23 kali cicilan.
 
-## Dua peran (seperti aplikasi asal, versi sederhana)
+## Dibangun ulang untuk UX yang lebih mudah
 
-**Pemohon** (pilih "Pemohon" di kiri atas)
-1. *Usaha & pinjaman* — data usaha, jumlah, lama, dan **cicil setiap hari / minggu / bulan**.
-2. *Laporan keuangan* — **cukup kirim berkas** (PDF, Excel, CSV, atau foto). Angkanya dibaca otomatis
-   (foto / PDF hasil scan lewat OCR di browser); pemohon hanya memeriksa dan mengisi yang belum terbaca.
-3. *Jaminan & dokumen* — jenis & nilai jaminan, lampiran KTP, legalitas, rekening koran, dll.
-4. *Periksa & kirim* — ringkasan + persetujuan pemeriksaan data.
-5. *Pengajuan saya* — linimasa, permintaan perbaikan, dan **penawaran untuk diterima / ditolak**.
-   Seperti aplikasi asal, pemohon tidak melihat skor atau peringkat.
+Tampilan dibuat **dari nol**; logika perhitungan, teori, dan format datanya diambil utuh dari dashboard lama
+(`productive-loan-analyzer`) — dashboard lama tidak diubah. Keputusan desain mengikuti 13 prinsip UX
+(Next Digital) dan dicatat di [`docs/REDESIGN_UX.md`](docs/REDESIGN_UX.md).
 
-**Petugas bank** (pilih "Petugas bank")
-1. *Pengajuan masuk* — antrian per tahap (perlu diperiksa, siap dicairkan, menunggu pemohon).
-2. Pemeriksaan satu pengajuan: data & angka dari berkas → centang dokumen (keyakinan data) →
-   wawancara 7 pertanyaan → kartu hasil analisis + simulasi → gerbang keputusan →
-   **kirim penawaran** (jumlah, lama, bunga, periode cicilan) / **minta perbaikan** / tolak.
-3. Setelah pemohon menerima: syarat pencairan → cairkan → pemantauan bulanan → keringanan.
-4. *Portofolio* — lampu kesehatan pinjaman, NPL, CKPN/PPKA (mode Lengkap), cadangan data.
+**Pemohon** — menu: Beranda · Ajukan · Pengajuan saya
+1. *Ajukan* (4 langkah, tersimpan otomatis): usaha & pinjaman (cicil **harian / mingguan / bulanan**) →
+   **kirim laporan keuangan apa adanya** (PDF/Excel/CSV/foto, angka dibaca otomatis, OCR untuk foto) →
+   jaminan & dokumen → periksa & kirim.
+2. *Pengajuan saya*: status dengan jawaban di atas, linimasa, catatan petugas, **terima / tolak penawaran**
+   lengkap dengan bunga efektif. Pemohon tidak melihat skor atau peringkat (sama seperti dashboard lama).
 
-| Yang diisi pemohon | Yang diisi petugas |
-| --- | --- |
-| Data usaha, jumlah, lama, periode cicilan, keperluan | Verifikasi dokumen |
-| Berkas laporan keuangan (dibaca otomatis) | Tunggakan (SLIK), kas cukup berapa bulan |
-| Jaminan & dokumen pendukung | Wawancara (model usaha, pasar, pengalaman, dst.) |
-| Menerima / menolak penawaran | Penawaran, perbaikan, pencairan, pemantauan, keringanan |
+**Petugas** — menu: Beranda · Pengajuan · Nasabah · Portofolio · Lainnya
+1. *Beranda*: tugas berikutnya per prioritas (audit, analisis, pencairan, menunggu pemohon) + kesehatan pinjaman.
+2. *Pengajuan → Tinjau* bertahap: Dokumen → Audit keuangan (2 butir otomatis) → Agunan → Wawancara (skala 5 tingkat)
+   → Hasil & keputusan. Hasil tidak muncul sebelum audit diverifikasi; audit belum lengkap wajib justifikasi.
+   Penawaran flat / bagi hasil dengan pemeriksaan otomatis; di luar batas → keputusan manual beralasan.
+3. *Nasabah*: satu halaman per nasabah — Ringkasan · Analisis · Fasilitas & pemantauan (syarat pencairan,
+   cairkan, pemantauan bulanan 20 parameter, keringanan 3R, covenant) · Simulasi bagaimana-jika.
+4. *Portofolio*: mode Sederhana / Lengkap (NPL, CKPN PSAK 71, PPKA, ATMR, konsentrasi, migrasi).
+5. *Lainnya*: Analisis manual, Panduan 5C, Pengaturan (dengan pratinjau dampak + statistik penggunaan lokal), Tim.
 
-Data tersimpan di browser (localStorage). Pemohon dan petugas memakai browser yang sama dalam mode lokal
-(sama seperti mode lokal aplikasi asal). Gunakan *Unduh cadangan* / *Pulihkan dari cadangan* di Portofolio.
+Umum: pencarian cepat nasabah/pengajuan, breadcrumb, mode gelap, navigasi bawah di HP, konfirmasi di halaman,
+toast untuk setiap aksi. Akun contoh: `umkm@demo.id` / `umkm123`, `admin@demo.id` / `admin123`,
+atau tombol "Coba sebagai …" di halaman masuk. "Muat data contoh" mengisi pengajuan Bu Sari & pinjaman Pak Darto.
+
+Data tersimpan di browser (mode lokal, kunci `pla.*` sama dengan dashboard lama — cadangan JSON lama bisa diimpor).
 
 ## Menjalankan
 
@@ -76,35 +76,26 @@ Tanpa build dan tanpa dependency.
 ## Struktur
 
 ```
-index.html              halaman tunggal
-src/core/               mesin hitung MEZS.id — disalin utuh, JANGAN diubah di sini
-src/data/               benchmark sektor IDX & profil perusahaan
-src/simple/             lapisan baru:
-  analyze.js            memanggil mesin (+ uji ulang pada jumlah saran)
-  translate.js          hasil mesin → status, peringkat, bintang, kalimat (tanpa hitung ulang)
-  form-schema.js        formulir 5 langkah dalam bahasa sehari-hari
-  intake.js             baca berkas laporan, dokumen, keyakinan data, gerbang keputusan
-  loans.js              alur: pengajuan → penawaran → pencairan → pemantauan → keringanan
-  demo.js               kasus Bu Sari & Pak Darto
-src/ui/app.js           peran, navigasi, penyimpanan, unggah berkas
-src/ui/borrower-view.js layar pemohon
-src/ui/lender-view.js   layar petugas: antrian & pemeriksaan
-src/ui/result-view.js   kartu hasil analisis + simulasi + rincian
-src/ui/loans-view.js    portofolio, pencairan, pemantauan, keringanan
-src/ui/ocr.js           OCR foto laporan (Tesseract.js, dari repo asal)
-data/contoh/            berkas laporan contoh (CSV Bu Sari, PDF & Excel dua periode)
-tests/core/             tes mesin dari repo asal
-tests/simple.test.js    tes penerjemah, termasuk "hasil tetap sama"
-tests/loans.test.js     tes alur pinjaman & periode cicilan (Pak Darto = kompendium)
-tests/intake.test.js    tes pembacaan berkas CSV/PDF/Excel
-docs/PRD_DASHBOARD_SEDERHANA.md
-docs/UJI_COBA_PENGGUNA.md   panduan uji coba Tahap 3
+index.html                  halaman tunggal
+src/core/  src/data/  src/utils/   mesin, penyimpanan, format — disalin utuh dari dashboard lama, JANGAN diubah di sini
+src/services/               logika yang dulu tertanam di tampilan lama, dipindahkan tanpa mengubah aturan
+  core.js                   konfigurasi, analisis, sesi, tim
+  applications.js           pengajuan: draf, lampiran, isi otomatis, kirim, audit, nilai, penawaran
+  portfolio.js              nasabah, fasilitas, pemantauan, 3R, portofolio, cadangan
+  simulation.js · plain.js · labels.js · demo.js
+src/app/                    tampilan baru
+  main.js                   rute, menu per peran, breadcrumb, pencarian, mode gelap
+  ui.js · widgets.js · result.js · styles.css
+  pages/                    public · borrower · lender · customers · more
+tests/core/                 tes mesin dari repo asal
+tests/services.test.js      alur penuh lapisan layanan (Bu Sari 87,2 → idAA; Pak Darto)
+docs/REDESIGN_UX.md         cetak biru desain ulang
 ```
 
 ## Menyelaraskan mesin
 
 `src/core/` adalah salinan dari `productive-loan-analyzer/src/core`. Bila mesin di repo asal berubah,
-salin ulang folder itu beserta `tests/core/`, lalu jalankan `npm test`. Tes `tests/simple.test.js`
+salin ulang folder itu beserta `tests/core/`, lalu jalankan `npm test`. Tes `tests/services.test.js`
 memastikan angka Bu Sari tetap sama dengan kompendium.
 
 Catatan: peringkat adalah model internal MEZS.id, bukan rating resmi PEFINDO. Data demo fiktif.

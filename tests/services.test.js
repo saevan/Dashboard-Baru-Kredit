@@ -172,3 +172,28 @@ test('data contoh Bu Sari masuk antrean petugas tanpa mengubah sesi', () => {
      assert.equal(storage.getApplication(id).status, 'submitted');
      assert.ok(apps.lenderQueue().some((r) => r.id === id));
 });
+
+test('berkas laporan contoh terbaca mesin lama (CSV, PDF 2 periode, Excel)', async () => {
+     const { inspectAttachment } = await import('../src/core/attachments.js');
+     for (const name of ['laporan_keuangan_bu_sari.csv', 'laporan_keuangan_cv_fiktif.pdf', 'laporan_keuangan_cv_fiktif.xlsx']) {
+          const bytes = new Uint8Array(readFileSync(new URL(`../data/contoh/${name}`, import.meta.url)));
+          const meta = await inspectAttachment(bytes, name, 'laporan_keuangan');
+          assert.ok(meta.extraction?.candidates?.length >= 1, `${name}: ${meta.extraction?.message}`);
+     }
+});
+
+test('isi otomatis dari laporan contoh Bu Sari mengisi angka wajib', async () => {
+     fresh();
+     loginDemo('borrower');
+     const { inspectAttachment } = await import('../src/core/attachments.js');
+     const bytes = new Uint8Array(readFileSync(new URL('../data/contoh/laporan_keuangan_bu_sari.csv', import.meta.url)));
+     const meta = await inspectAttachment(bytes, 'lk.csv', 'laporan_keuangan');
+     const draft = apps.blankDraft();
+     draft.borrower.nama = 'Katering Dapur Sari';
+     apps.saveDraft(draft);
+     const doc = { ...meta, id: 'doc_lk', source_key: 'laporan_keuangan', verified: 0 };
+     draft.documents = [doc];
+     const out = apps.autoFill(draft, doc);
+     assert.equal(out.applied, true, out.message);
+     for (const k of apps.MIN_FIN_FIELDS) assert.ok(Number.isFinite(draft.borrower.keuangan[k]), k);
+});

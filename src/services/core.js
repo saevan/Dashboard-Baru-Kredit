@@ -51,11 +51,20 @@ export function benchmarkData() {
      return applyBenchmarkOverrides(INDUSTRY_BENCHMARK, storage.loadBenchmarkOverrides());
 }
 
-/** Analisis lengkap memakai config aktif + benchmark + profil (sama dengan dashboard lama). */
-export function analyze(borrower) {
-     const config = getConfig();
+/** Opsi analisis: config aktif + benchmark + profil (sama dengan dashboard lama). */
+export function analysisOptions(settings = storage.loadSettings()) {
+     const config = getConfig(settings);
      const profiles = config && config.profiles ? { ...COMPANY_PROFILES, ...config.profiles } : COMPANY_PROFILES;
-     return runFullAnalysis(borrower, { config, benchmarkData: benchmarkData(), profiles });
+     return { config, benchmarkData: benchmarkData(), profiles };
+}
+
+export function analyze(borrower) {
+     return runFullAnalysis(borrower, analysisOptions());
+}
+
+/** Pratinjau dampak pengaturan yang belum disimpan (layar Pengaturan). */
+export function analyzeWithSettings(borrower, partial) {
+     return runFullAnalysis(borrower, analysisOptions(deepMerge(storage.loadSettings() || {}, partial || {})));
 }
 
 /** Baseline benchmark untuk EWS (ROA p25/p10 sektor). */
