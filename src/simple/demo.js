@@ -5,7 +5,8 @@
  */
 
 import { emptyBorrower } from '../core/engine.js';
-import { createLoan, approveLoan, toggleCondition, conditionsView, disburseLoan, addMonitoring } from './loans.js';
+import { createLoan, makeOffer, acceptOffer, verifyDocument, toggleCondition, conditionsView, disburseLoan, addMonitoring } from './loans.js';
+import { DOCUMENTS } from './intake.js';
 
 export function demoBuSari() {
      const b = emptyBorrower();
@@ -17,6 +18,7 @@ export function demoBuSari() {
           tenor_bulan: 36,
           bunga_tahunan: 0.14,
           skema_angsuran: 'annuity',
+          periode_angsuran: 'bulanan',
           jenis_kredit: 'modal_kerja',
           tujuan_kredit: 'Modal kerja bahan baku dan peralatan untuk kontrak katering kantor baru'
      });
@@ -65,7 +67,8 @@ export function demoPakDarto() {
           plafon_diajukan: 250_000_000,
           tenor_bulan: 24,
           bunga_tahunan: 0.14,
-          skema_angsuran: 'annuity'
+          skema_angsuran: 'annuity',
+          periode_angsuran: 'bulanan'
      });
      Object.assign(b.keuangan, {
           penjualan: 1_500_000_000,
@@ -87,8 +90,10 @@ export function demoPakDarto() {
      Object.assign(b.agunan, { jenis: 'tanah_bangunan', nilai_agunan: 450_000_000, personal_guarantee: false });
      const interview = { model: 4, pasar: 4, pengalaman: 4, bayar: 4, kelola: 4, tren: 4, industri: 4 };
 
-     let r = createLoan({ borrower: b, interview, now: new Date('2026-03-02T03:00:00Z') });
-     r = approveLoan(r, { amount: 250_000_000, now: new Date('2026-03-05T03:00:00Z') });
+     let r = createLoan({ borrower: b, documents: demoDocuments('darto'), consent: true, interview, now: new Date('2026-03-02T03:00:00Z') });
+     for (const d of r.documents) r = verifyDocument(r, d.key, true, new Date('2026-03-03T03:00:00Z'));
+     r = makeOffer(r, { amount: 250_000_000, tenor: 24, rate: 0.14, periodicity: 'bulanan', now: new Date('2026-03-05T03:00:00Z') });
+     r = acceptOffer(r, { now: new Date('2026-03-06T03:00:00Z') });
      for (const c of conditionsView(r).items) r = toggleCondition(r, c.code, true, new Date('2026-03-12T03:00:00Z'));
      r = disburseLoan(r, { now: new Date('2026-03-16T03:00:00Z') });
      r = addMonitoring(r, {
@@ -106,3 +111,25 @@ export function demoPakDarto() {
      }, { now: new Date('2026-09-30T09:00:00Z') });
      return r;
 }
+
+/**
+ * Dokumen contoh (fiktif): hanya catatan nama berkas, tanpa isi. Dipakai demo
+ * agar daftar periksa petugas terisi; laporan keuangan Bu Sari dibaca dari
+ * data/contoh/laporan_keuangan_bu_sari.csv.
+ */
+export function demoDocuments(prefix = 'sari') {
+     return DOCUMENTS.filter((d) => d.mandatory || d.key === 'agunan').map((d, i) => ({
+          key: d.key,
+          filename: `contoh-${prefix}-${d.key}.pdf`,
+          size: 120_000 + i * 1000,
+          type: 'application/pdf',
+          sha256: `contoh-${prefix}-${d.key}`,
+          uploaded_at: '2026-10-01T00:00:00.000Z',
+          verified: false,
+          example: true,
+          extraction: null
+     }));
+}
+
+/** Lokasi berkas laporan contoh Bu Sari (dibaca seperti berkas yang diunggah pemohon). */
+export const SAMPLE_REPORT_URL = 'data/contoh/laporan_keuangan_bu_sari.csv';

@@ -146,3 +146,28 @@ export const PURPOSE_OPTIONS = [
      { key: 'modal_kerja', label: 'Modal kerja (bahan baku, stok, operasional)' },
      { key: 'investasi', label: 'Investasi (peralatan, mesin, renovasi, kendaraan)' }
 ];
+
+/**
+ * Validasi formulir pemohon (4 langkah: usaha & pinjaman, laporan keuangan,
+ * jaminan & dokumen, kirim). Dokumen wajib yang belum ada hanya diperingatkan,
+ * seperti di aplikasi asal: petugas yang memutuskan kelengkapannya.
+ */
+export function validateApplicationStep(step, draft) {
+     const b = draft.borrower || {};
+     const errs = [];
+     if (step === 0) {
+          if (!String(b.nama || '').trim()) errs.push('Isi nama usaha.');
+          if (!b.sektor) errs.push('Pilih bidang usaha.');
+          if (!(Number(b.plafon_diajukan) > 0)) errs.push('Isi jumlah pinjaman yang diajukan.');
+          if (!(Number(b.tenor_bulan) >= 1 && Number(b.tenor_bulan) <= 120)) errs.push('Lama pinjaman 1–120 bulan.');
+     }
+     if (step === 1) {
+          const missing = FINANCE_FIELDS.filter((f) => f.required && !Number.isFinite(b.keuangan?.[f.key]));
+          if (missing.length) errs.push(`Angka berikut belum terbaca dari laporan: ${missing.map((f) => f.label.toLowerCase()).join(', ')}. Unggah laporan yang lebih lengkap atau isi sendiri.`);
+     }
+     if (step === 2) {
+          if (b.agunan?.jenis && !(Number(b.agunan?.nilai_agunan) > 0)) errs.push('Isi perkiraan nilai jaminan, atau pilih "Tanpa jaminan".');
+     }
+     if (step === 3 && !draft.consent) errs.push('Centang persetujuan pemeriksaan data sebelum mengirim.');
+     return errs;
+}

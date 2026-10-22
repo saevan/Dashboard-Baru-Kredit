@@ -191,6 +191,9 @@ Diukur lewat uji coba dengan 10 pemilik UMKM dan 5 petugas kredit sebelum dan se
 | --- | --- | --- |
 | 1 | Penerjemah kalimat & peringkat, kartu hasil, layar perbaikan, formulir 5 langkah, saklar Sederhana/Lengkap | Selesai |
 | 2 | Daftar pinjaman (portofolio) & peringatan dini, keputusan & pencairan, keringanan cicilan, simulasi "bagaimana jika", uji kondisi sulit, cetak, cadangan data | Selesai |
+| 2b | Peran terpisah pemohon/petugas, laporan dikirim sebagai berkas & dibaca otomatis, cicilan harian/mingguan/bulanan, penawaran yang diterima/ditolak pemohon | Selesai |
 | 3 | Uji coba dengan pengguna nyata | Siap dijalankan — lihat `docs/UJI_COBA_PENGGUNA.md` |
+
+Perubahan dari rencana awal: kartu hasil (skor & peringkat) kini hanya untuk petugas, mengikuti aplikasi asal; pemohon melihat linimasa, permintaan perbaikan, dan penawaran.
 
 Catatan: layar 4–5 (portofolio & peringatan dini) yang di tabel layar ditandai MVP dibangun bersama Tahap 2.

@@ -1,46 +1,38 @@
 /**
- * ui/loans-view.js — Layar "Daftar pinjaman" (portofolio + peringatan dini)
- * dan detail satu pinjaman (keputusan, pencairan, pemantauan, keringanan).
- * Hanya menyusun HTML dari simple/loans.js.
+ * ui/loans-view.js — Bagian layar petugas untuk pinjaman yang sudah
+ * diterima/berjalan: portofolio + peringatan dini, syarat pencairan,
+ * pemantauan, dan keringanan. Hanya menyusun HTML dari simple/loans.js.
  */
 
 import {
-     LOAN_STATUS,
-     analyzeLoan,
      conditionsView,
+     periodUnit,
      monitoringView,
      restructuringView,
      portfolioView,
      EWS_PARAMS
 } from '../simple/loans.js';
-import { toPlain, rupiah } from '../simple/translate.js';
+import { rupiah } from '../simple/translate.js';
+import { esc, pct, fullRp, dateLabel } from './html.js';
 
-export const esc = (v) =>
-     String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
-const pct = (v, d = 1) => (Number.isFinite(v) ? `${(v * 100).toLocaleString('id-ID', { maximumFractionDigits: d })}%` : '—');
-const fullRp = (v) => (Number.isFinite(v) ? `Rp ${Math.round(v).toLocaleString('id-ID')}` : '—');
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const periodLabel = (p) => (/^\d{4}-\d{2}$/.test(p) ? `${MONTHS[Number(p.slice(5)) - 1]} ${p.slice(0, 4)}` : p);
-const dateLabel = (iso) => (iso ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 const TONE_ORDER = { merah: 0, kuning: 1, hijau: 2 };
-const STATUS_ORDER = { aktif: 0, disetujui: 1, diajukan: 2, ditolak: 3, lunas: 4 };
 
 /* ---------------------------------------------------------- daftar ------ */
 
 export function renderLoanList(records, { lengkap }) {
      const view = portfolioView(records);
-     const cards = [...view.cards].sort((a, b) =>
-          (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || (TONE_ORDER[a.tone] - TONE_ORDER[b.tone]));
+     const cards = view.cards.filter((c) => ['aktif', 'lunas'].includes(c.status))
+          .sort((a, b) => (a.status === 'lunas') - (b.status === 'lunas') || TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);
      const hasDarto = records.some((r) => r.demo === 'darto');
      return `
      <section class="panel">
           <div class="panel-head">
-               <div><h1>Daftar pinjaman</h1><p class="muted">${esc(view.sentence)}</p></div>
+               <div><h1>Portofolio pinjaman</h1><p class="muted">${esc(view.sentence)}</p></div>
                <div class="head-actions">
                     ${hasDarto ? '' : '<button type="button" class="btn ghost" data-action="demo-darto">Muat contoh Pak Darto</button>'}
-                    <button type="button" class="btn primary" data-action="new">Ajukan pinjaman baru</button>
                </div>
           </div>
           <div class="tiles">
@@ -48,10 +40,10 @@ export function renderLoanList(records, { lengkap }) {
                <div class="tile tone-hijau"><p class="kpi-label">Sehat</p><p class="kpi-value">${view.lamps.hijau}</p></div>
                <div class="tile tone-kuning"><p class="kpi-label">Perlu perhatian</p><p class="kpi-value">${view.lamps.kuning}</p></div>
                <div class="tile tone-merah"><p class="kpi-label">Perlu tindakan segera</p><p class="kpi-value">${view.lamps.merah}</p></div>
-               <div class="tile"><p class="kpi-label">Menunggu keputusan / pencairan</p><p class="kpi-value">${view.pending}</p></div>
+               <div class="tile"><p class="kpi-label">Pengajuan dalam proses</p><p class="kpi-value">${view.pending}</p></div>
           </div>
           ${view.problemSentence ? `<p class="sentence">${esc(view.problemSentence)}</p>` : ''}
-          ${cards.length ? `<ul class="loan-list">${cards.map(loanItem).join('')}</ul>` : '<p class="muted empty">Belum ada pinjaman. Simpan hasil analisis dari formulir, atau muat contoh Pak Darto.</p>'}
+          ${cards.length ? `<ul class="loan-list">${cards.map(loanItem).join('')}</ul>` : '<p class="muted empty">Belum ada pinjaman berjalan. Cairkan pengajuan yang sudah diterima, atau muat contoh Pak Darto.</p>'}
           ${lengkap && view.activeCount ? renderPortfolioDetail(view.raw) : ''}
           <div class="backup">
                <p class="muted small">Data tersimpan di browser ini saja. Simpan cadangan secara berkala.</p>
@@ -61,7 +53,7 @@ export function renderLoanList(records, { lengkap }) {
      </section>`;
 }
 
-function loanItem(c) {
+export function loanItem(c) {
      return `<li><button type="button" class="loan tone-${c.tone}" data-open="${esc(c.id)}">
           <span class="lamp" aria-hidden="true"></span>
           <span class="loan-main">
@@ -100,55 +92,9 @@ function renderPortfolioDetail(p) {
      </div>`;
 }
 
-/* ---------------------------------------------------------- detail ------ */
+/* ------------------------------------------- pencairan & berjalan ---- */
 
-export function renderLoanDetail(record, { lengkap, ui = {} }) {
-     const status = LOAN_STATUS[record.status];
-     const body = {
-          diajukan: renderDecision,
-          disetujui: renderConditions,
-          aktif: renderActive,
-          ditolak: renderClosed,
-          lunas: renderClosed
-     }[record.status](record, { lengkap, ui });
-     return `
-     <section class="panel">
-          <div class="panel-head">
-               <div><p class="muted"><button type="button" class="link" data-action="list">← Daftar pinjaman</button></p>
-                    <h1>${esc(record.borrower.nama)}</h1>
-                    <p class="muted">${esc(status.label)} · diajukan ${esc(rupiah(record.borrower.plafon_diajukan))}${record.amount ? ` · disetujui ${esc(rupiah(record.amount))}` : ''}</p></div>
-               <div class="head-actions">
-                    <button type="button" class="btn ghost" data-action="open-result" data-id="${esc(record.id)}">Kartu hasil analisis</button>
-                    <button type="button" class="btn ghost danger" data-action="delete-loan" data-id="${esc(record.id)}">Hapus</button>
-               </div>
-          </div>
-          ${body}
-     </section>`;
-}
-
-function renderDecision(record) {
-     const v = toPlain(analyzeLoan(record));
-     const suggested = v.amount.suggested > 0 ? Math.min(v.amount.suggested, v.amount.requested) : v.amount.requested;
-     return `
-     <div class="status tone-${v.status.tone}">
-          <div class="status-main"><span class="lamp" aria-hidden="true"></span>
-               <div><p class="status-label">${esc(v.status.label)}</p><p class="status-tone">${esc(v.grade ? `${v.grade.grade} — ${v.grade.label}` : '')}</p></div></div>
-     </div>
-     <p class="reason">${esc(v.reason)}</p>
-     <p class="sentence">${esc(v.amount.sentence)}</p>
-     <h2>Keputusan petugas</h2>
-     <form class="decide" data-decide="${esc(record.id)}">
-          <label class="field"><span class="field-label">Jumlah yang disetujui</span>
-               <span class="money"><span class="money-prefix">Rp</span><input type="text" inputmode="numeric" name="amount" value="${esc(Math.round(suggested).toLocaleString('id-ID'))}"></span>
-               <span class="field-hint">Bawaan: jumlah aman dari sistem. Keputusan akhir tetap di tangan petugas.</span></label>
-          <div class="form-actions">
-               <button type="button" class="btn ghost danger" data-action="reject" data-id="${esc(record.id)}">Tolak</button>
-               <button type="submit" class="btn primary">Setujui</button>
-          </div>
-     </form>`;
-}
-
-function renderConditions(record) {
+export function renderConditions(record) {
      const c = conditionsView(record);
      return `
      <p class="reason">Dana dicairkan setelah semua syarat wajib terpenuhi (${c.done} dari ${c.total} selesai).</p>
@@ -161,11 +107,7 @@ function renderConditions(record) {
      </div>`;
 }
 
-function renderClosed(record) {
-     return `<p class="reason">${esc(record.status === 'ditolak' ? `Pengajuan ditolak${record.reject_reason ? `: ${record.reject_reason}` : '.'}` : 'Pinjaman sudah lunas.')}</p>`;
-}
-
-function renderActive(record, { lengkap, ui }) {
+export function renderActive(record, { lengkap, ui = {} }) {
      const last = monitoringView(record.monitoring?.at(-1));
      const tone = last ? last.tone : 'hijau';
      const timeline = [...(record.monitoring || [])].reverse();
@@ -183,7 +125,7 @@ function renderActive(record, { lengkap, ui }) {
 
      <div class="kpis">
           <div class="kpi"><p class="kpi-label">Sisa pinjaman</p><p class="kpi-value">${esc(rupiah(record.outstanding))}</p><p class="kpi-sub">dari ${esc(rupiah(record.amount))}</p></div>
-          <div class="kpi"><p class="kpi-label">Cicilan per bulan</p><p class="kpi-value">${esc(rupiah(record.terms?.monthly_installment))}</p><p class="kpi-sub">bunga ${esc(pct(record.terms?.rate, 2))}</p></div>
+          <div class="kpi"><p class="kpi-label">Cicilan per ${esc(periodUnit(record.terms?.periodicity))}</p><p class="kpi-value">${esc(rupiah(record.terms?.per_period ?? record.terms?.monthly_installment))}</p><p class="kpi-sub">bunga ${esc(pct(record.terms?.rate, 2))}${record.terms?.periodicity && record.terms.periodicity !== 'bulanan' ? ` · setara ${esc(rupiah(record.terms.monthly_installment))}/bulan` : ''}</p></div>
           <div class="kpi"><p class="kpi-label">Sisa lama pinjaman</p><p class="kpi-value">${esc(record.terms?.remaining_months ?? '—')} bln</p><p class="kpi-sub">cair ${esc(dateLabel(record.disbursed_at))}</p></div>
      </div>
 

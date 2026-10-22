@@ -175,8 +175,11 @@ function monthlyInstallment(result) {
 function installmentView(result) {
      const monthly = monthlyInstallment(result);
      const daily = result.daily_cashflow?.applicable ? result.daily_cashflow.daily?.debt_service_set_aside : null;
+     const periodic = result.debtService?.periodic;
      return {
           monthly,
+          periodicity: periodic?.periodicity || 'bulanan',
+          perPeriod: periodic?.per_period ?? monthly,
           daily: finite(daily) ? daily : null,
           tenor: result.borrower?.tenor_bulan ?? null,
           rate: result.risk?.pricing?.recommended_rate ?? null

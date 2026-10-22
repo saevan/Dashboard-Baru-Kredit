@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 
 import {
      createLoan,
-     approveLoan,
+     makeOffer,
+     acceptOffer,
+     declineOffer,
+     requestFix,
+     resubmit,
+     verifyDocument,
+     borrowerTimeline,
      rejectLoan,
      toggleCondition,
      conditionsView,
@@ -18,25 +24,68 @@ import {
      loanCard,
      portfolioView
 } from '../src/simple/loans.js';
-import { demoBuSari, demoPakDarto } from '../src/simple/demo.js';
+import { demoBuSari, demoPakDarto, demoDocuments } from '../src/simple/demo.js';
+import { confidenceView, gateView } from '../src/simple/intake.js';
+import { analyzeLoan } from '../src/simple/loans.js';
 
 const NOW = new Date('2026-10-01T00:00:00Z');
 
-function approvedSari(amount = 380_000_000) {
-     return approveLoan(createLoan({ borrower: demoBuSari(), now: NOW }), { amount, now: NOW });
+const submitSari = () => createLoan({ borrower: demoBuSari(), documents: demoDocuments(), consent: true, now: NOW });
+
+function approvedSari(amount = 380_000_000, periodicity = 'bulanan') {
+     const offered = makeOffer(submitSari(), { amount, tenor: 36, rate: 0.14, periodicity, now: NOW });
+     return acceptOffer(offered, { now: NOW });
 }
 
-test('pengajuan baru: status menunggu keputusan + ringkasan mesin', () => {
-     const loan = createLoan({ borrower: demoBuSari(), now: NOW });
+test('pengajuan baru: wajib persetujuan; kartu petugas berisi ringkasan mesin', () => {
+     assert.throws(() => createLoan({ borrower: demoBuSari(), consent: false }), /persetujuan/);
+     const loan = submitSari();
      assert.equal(loan.status, 'diajukan');
      const card = loanCard(loan);
-     assert.equal(card.headline, 'Menunggu keputusan');
+     assert.equal(card.headline, 'Pengajuan baru');
      assert.match(card.sentence, /perlu ditinjau \(idAA\)\. Saran Rp 380 jt/);
+     assert.deepEqual(borrowerTimeline('diajukan').map((s) => s.state), ['done', 'current', 'todo', 'todo', 'todo']);
 });
 
-test('persetujuan butuh jumlah > 0; penolakan menyimpan alasan', () => {
-     const loan = createLoan({ borrower: demoBuSari(), now: NOW });
-     assert.throws(() => approveLoan(loan, { amount: 0 }));
+test('perbaikan: petugas minta, pemohon kirim ulang; berkas diganti = verifikasi hilang', () => {
+     let loan = verifyDocument(submitSari(), 'identitas', true, NOW);
+     assert.throws(() => requestFix(loan, { note: ' ' }), /Tulis/);
+     loan = requestFix(loan, { note: 'Lampirkan rekening koran 6 bulan', now: NOW });
+     assert.equal(loan.status, 'perbaikan');
+     assert.equal(loanCard(loan).sentence, 'Diminta: Lampirkan rekening koran 6 bulan');
+     const docs = loan.documents.map((d) => (d.key === 'rekening_koran' ? { ...d, sha256: 'baru' } : d));
+     loan = resubmit(loan, { documents: docs, now: NOW });
+     assert.equal(loan.status, 'diajukan');
+     assert.equal(loan.documents.find((d) => d.key === 'identitas').verified, true);
+     assert.equal(loan.documents.find((d) => d.key === 'rekening_koran').verified, false);
+});
+
+test('penawaran: cicilan harian/mingguan/bulanan dari mesin; pemohon menerima atau menolak', () => {
+     const harian = makeOffer(submitSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'harian', now: NOW });
+     assert.equal(harian.status, 'ditawarkan');
+     assert.equal(harian.offer.periodicity, 'harian');
+     assert.equal(harian.offer.periods, 1080);
+     assert.ok(Math.abs(harian.offer.per_period * 1080 - harian.offer.monthly * 36) < 50);
+     const mingguan = makeOffer(submitSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'mingguan', now: NOW });
+     assert.equal(mingguan.offer.periods, 156);
+     assert.equal(mingguan.offer.decision, 'LAYAK');
+     assert.throws(() => makeOffer(submitSari(), { amount: 0, tenor: 36, rate: 0.14 }));
+     assert.equal(acceptOffer(harian).status, 'diterima');
+     assert.equal(declineOffer(harian, { reason: 'Bunga terlalu tinggi' }).status, 'ditolak_pemohon');
+     assert.throws(() => acceptOffer(submitSari()), /tidak bisa/);
+});
+
+test('keyakinan data & gerbang keputusan dari dokumen terverifikasi', () => {
+     let loan = submitSari();
+     assert.equal(confidenceView(loan).level, 'LOW');
+     for (const d of loan.documents) loan = verifyDocument(loan, d.key, true, NOW);
+     const conf = confidenceView(loan);
+     assert.equal(conf.level, 'MEDIUM');
+     assert.equal(gateView(analyzeLoan(loan), conf).pass, true);
+});
+
+test('penolakan menyimpan alasan', () => {
+     const loan = submitSari();
      const rejected = rejectLoan(loan, { reason: 'Data belum lengkap', now: NOW });
      assert.equal(rejected.status, 'ditolak');
      assert.equal(loanCard(rejected).sentence, 'Data belum lengkap');
@@ -60,6 +109,7 @@ test('modal kerja di atas borrowing base: pencairan pertama dibatasi Rp 165 jt',
      assert.equal(loan.drawn, 165_000_000);
      assert.equal(loan.outstanding, 165_000_000);
      assert.equal(loan.terms.tenor_bulan, 36);
+     assert.equal(loan.terms.periodicity, 'bulanan');
      assert.ok(loan.terms.monthly_installment > 12_900_000 && loan.terms.monthly_installment < 13_100_000);
      loan = drawRemaining(loan, { now: NOW });
      assert.equal(loan.outstanding, 380_000_000);
@@ -105,7 +155,7 @@ test('Pak Darto: keringanan = perpanjang 33 bulan, cicilan Rp 7,47 jt, DSCR 1,23
 
 test('portofolio: lampu, NPL, dan masa tunggu restrukturisasi dari mesin', () => {
      const darto = applyRestructuring(demoPakDarto(), 'rescheduling', { now: NOW });
-     const pending = createLoan({ borrower: demoBuSari(), now: NOW });
+     const pending = submitSari();
      const p = portfolioView([darto, pending]);
      assert.equal(p.activeCount, 1);
      assert.equal(p.pending, 1);

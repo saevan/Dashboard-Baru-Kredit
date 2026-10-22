@@ -17,11 +17,12 @@
 <body>
      <header class="topbar">
           <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><span>MEZS.id <small>Sederhana</small></span></div>
-          <nav class="nav" aria-label="Menu utama">
-               <button type="button" data-nav="ajukan" aria-current="page">Ajukan</button>
-               <button type="button" data-nav="pinjaman">Daftar pinjaman</button>
-          </nav>
-          <div class="mode-switch" role="group" aria-label="Tampilan">
+          <div class="role-switch" role="group" aria-label="Masuk sebagai">
+               <button type="button" data-role="pemohon" aria-pressed="true">Pemohon</button>
+               <button type="button" data-role="petugas" aria-pressed="false">Petugas bank</button>
+          </div>
+          <nav class="nav" id="nav" aria-label="Menu utama"></nav>
+          <div class="mode-switch" role="group" aria-label="Tampilan" hidden>
                <button type="button" data-mode="sederhana" aria-pressed="true">Sederhana</button>
                <button type="button" data-mode="lengkap" aria-pressed="false">Lengkap</button>
           </div>

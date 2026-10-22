@@ -1,429 +1,44 @@
 /**
- * ui/app.js — Dashboard Kredit Sederhana (MEZS.id).
- * Formulir 5 langkah → kartu hasil (+ simulasi) → daftar pinjaman →
- * pencairan → pemantauan → keringanan. Semua angka dari mesin src/core
- * (lewat src/simple); layar ini hanya menyusun tampilan dan menyimpan status.
+ * ui/app.js — Dashboard Kredit Sederhana (MEZS.id), dua peran:
+ *   PEMOHON  : ajukan pinjaman (data usaha, kirim berkas laporan, dokumen),
+ *              pantau status, jawab penawaran.
+ *   PETUGAS  : periksa pengajuan (dokumen, wawancara, hasil analisis),
+ *              kirim penawaran / minta perbaikan / tolak, cairkan, pantau,
+ *              beri keringanan, lihat portofolio.
+ * Semua angka dari mesin src/core lewat src/simple; layar ini hanya
+ * menyusun tampilan dan menyimpan status (localStorage, mode lokal).
  */
 
-import { analyze, analyzeWithSuggestion, emptyBorrower } from '../simple/analyze.js';
-import { toPlain, plainMetrics, rupiah, TONE_WORD, PILLAR_PLAIN } from '../simple/translate.js';
-import {
-     SECTOR_OPTIONS,
-     PROFILE_OPTIONS,
-     COLLATERAL_OPTIONS,
-     SCHEME_OPTIONS,
-     FINANCE_FIELDS,
-     INTERVIEW_QUESTIONS,
-     INTERVIEW_SCALE,
-     applyInterview,
-     PURPOSE_OPTIONS,
-     scoreToInterview,
-     parseAmount,
-     validateStep
-} from '../simple/form-schema.js';
-import { demoBuSari, demoPakDarto } from '../simple/demo.js';
+import { emptyBorrower } from '../simple/analyze.js';
+import { parseAmount, validateApplicationStep } from '../simple/form-schema.js';
+import { demoBuSari, demoPakDarto, demoDocuments, SAMPLE_REPORT_URL } from '../simple/demo.js';
+import { readDocument, pickCandidate, applyCandidate, MAX_FILE_BYTES } from '../simple/intake.js';
 import {
      createLoan,
-     approveLoan,
+     resubmit,
+     verifyDocument,
+     setInterview,
+     requestFix,
+     makeOffer,
+     acceptOffer,
+     declineOffer,
      rejectLoan,
      toggleCondition,
      disburseLoan,
+     drawRemaining,
      addMonitoring,
      applyRestructuring,
-     drawRemaining,
      effectiveBorrower
 } from '../simple/loans.js';
-import { renderLoanList, renderLoanDetail } from './loans-view.js';
-import { borrowingBase } from '../core/disbursement.js';
+import { rupiah } from '../simple/translate.js';
+import { renderApplyForm, renderMyApplications, renderMyApplication, APPLY_STEPS } from './borrower-view.js';
+import { renderQueue, renderLenderDetail } from './lender-view.js';
+import { renderLoanList } from './loans-view.js';
+import { simOutput } from './result-view.js';
+import { esc } from './html.js';
 
-/** Formulir kosong: lama usaha & cadangan kas tidak diisi diam-diam (mesin menilai netral). */
-function blankBorrower() {
-     const b = emptyBorrower();
-     b.bisnis_manajemen.track_record_tahun = null;
-     b.bisnis_manajemen.cash_runway_bulan = null;
-     return b;
-}
-
-const STEPS = ['Data usaha', 'Pinjaman', 'Laporan keuangan', 'Jaminan', 'Penilaian petugas'];
-const STORE_KEY = 'mezs-sederhana';
+const STORE_KEY = 'mezs-sederhana-v2';
 const LOANS_KEY = 'mezs-sederhana-pinjaman';
-
-/* ------------------------------------------------------------ state ----- */
-
-const state = {
-     view: 'form',
-     step: 0,
-     mode: 'sederhana',
-     borrower: blankBorrower(),
-     interview: {},
-     errors: [],
-     analysis: null,
-     detailOpen: false,
-     loans: [],
-     loanId: null,
-     resultLoanId: null,
-     ui: {},
-     sim: { amount: 0, tenor: 36, rate: 0.14 },
-     confirm: null,
-     backupText: null,
-     analyzedBorrower: null
-};
-
-function load() {
-     try {
-          const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-          const loans = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
-          if (Array.isArray(loans)) state.loans = loans;
-          if (saved && saved.borrower) {
-               state.borrower = saved.borrower;
-               state.interview = saved.interview || {};
-               state.mode = saved.mode === 'lengkap' ? 'lengkap' : 'sederhana';
-          }
-     } catch {
-          /* penyimpanan tidak tersedia — mulai dari formulir kosong */
-     }
-}
-
-function save() {
-     try {
-          localStorage.setItem(STORE_KEY, JSON.stringify({ borrower: state.borrower, interview: state.interview, mode: state.mode }));
-          localStorage.setItem(LOANS_KEY, JSON.stringify(state.loans));
-     } catch {
-          /* abaikan */
-     }
-}
-
-/* ---------------------------------------------------------- helpers ----- */
-
-const esc = (v) =>
-     String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
-const fmtInput = (n) => (Number.isFinite(n) ? Math.round(n).toLocaleString('id-ID') : '');
-const pct = (v, d = 1) => (Number.isFinite(v) ? `${(v * 100).toLocaleString('id-ID', { maximumFractionDigits: d })}%` : '—');
-const num = (v, d = 2) => (Number.isFinite(v) ? v.toLocaleString('id-ID', { maximumFractionDigits: d }) : '—');
-const fullRp = (v) => (Number.isFinite(v) ? `Rp ${Math.round(v).toLocaleString('id-ID')}` : '—');
-
-function getPath(obj, path) {
-     return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
-}
-
-function setPath(obj, path, value) {
-     const keys = path.split('.');
-     const last = keys.pop();
-     const target = keys.reduce((o, k) => (o[k] ??= {}), obj);
-     target[last] = value;
-}
-
-const options = (list, selected) =>
-     list.map((o) => `<option value="${esc(o.key)}"${o.key === selected ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
-
-function amountField(path, label, hint = '', required = false) {
-     const value = getPath(state.borrower, path);
-     return `<label class="field">
-          <span class="field-label">${esc(label)}${required ? ' <b class="req" aria-label="wajib">*</b>' : ''}</span>
-          ${hint ? `<span class="field-hint">${esc(hint)}</span>` : ''}
-          <span class="money"><span class="money-prefix">Rp</span><input type="text" inputmode="numeric" data-amount="${esc(path)}" value="${esc(fmtInput(value))}" placeholder="contoh: 400.000.000"></span>
-          <span class="field-echo" data-echo="${esc(path)}">${Number.isFinite(value) && value !== 0 ? `= ${esc(rupiah(value))}` : ''}</span>
-     </label>`;
-}
-
-/* ------------------------------------------------------------- form ----- */
-
-function stepDataUsaha() {
-     const b = state.borrower;
-     return `
-     <label class="field"><span class="field-label">Nama usaha <b class="req">*</b></span>
-          <input type="text" data-path="nama" value="${esc(b.nama)}" placeholder="contoh: Katering Dapur Sari"></label>
-     <label class="field"><span class="field-label">Bidang usaha <b class="req">*</b></span>
-          <select data-path="sektor"><option value="">— pilih —</option>${options(SECTOR_OPTIONS, b.sektor)}</select></label>
-     <fieldset class="field"><legend class="field-label">Kondisi usaha</legend>
-          <div class="choice-grid">${PROFILE_OPTIONS.map((p) => `
-               <label class="choice"><input type="radio" name="profil" data-path="profil_company" value="${p.key}"${b.profil_company === p.key ? ' checked' : ''}><span>${esc(p.label)}</span></label>`).join('')}
-          </div></fieldset>
-     <label class="field"><span class="field-label">Sudah berjalan berapa tahun?</span>
-          <span class="field-hint">Opsional — bila kosong, dinilai netral</span>
-          <input type="number" min="0" max="100" data-number="bisnis_manajemen.track_record_tahun" value="${esc(b.bisnis_manajemen?.track_record_tahun ?? '')}"></label>`;
-}
-
-function stepPinjaman() {
-     const b = state.borrower;
-     return `
-     ${amountField('plafon_diajukan', 'Jumlah pinjaman yang diajukan', '', true)}
-     <label class="field"><span class="field-label">Untuk apa pinjamannya?</span>
-          <select data-path="jenis_kredit"><option value="">— pilih —</option>${options(PURPOSE_OPTIONS, b.jenis_kredit)}</select></label>
-     <label class="field"><span class="field-label">Lama pinjaman (bulan) <b class="req">*</b></span>
-          <input type="number" min="1" max="120" data-number="tenor_bulan" value="${esc(b.tenor_bulan ?? '')}"></label>
-     <label class="field"><span class="field-label">Cara mencicil</span>
-          <select data-path="skema_angsuran">${options(SCHEME_OPTIONS, b.skema_angsuran)}</select></label>
-     <label class="field"><span class="field-label">Perkiraan bunga per tahun (%)</span>
-          <span class="field-hint">Bunga akhir dihitung ulang oleh sistem sesuai risiko</span>
-          <input type="number" min="0" max="60" step="0.1" data-percent="bunga_tahunan" value="${esc(Number.isFinite(b.bunga_tahunan) ? Math.round(b.bunga_tahunan * 1000) / 10 : '')}"></label>`;
-}
-
-function stepKeuangan() {
-     const b = state.borrower;
-     return `
-     <p class="note">Isi dari laporan keuangan 1 tahun terakhir. Tanda <b class="req">*</b> wajib diisi. Angka yang tidak diketahui biarkan kosong, jangan ditebak.</p>
-     <div class="field-grid">${FINANCE_FIELDS.map((f) => amountField(`keuangan.${f.key}`, f.label, f.hint, f.required)).join('')}</div>
-     <div class="field-grid">
-          <label class="field"><span class="field-label">Kas cukup untuk berapa bulan?</span>
-               <span class="field-hint">Opsional — cadangan kas bila usaha berhenti</span>
-               <input type="number" min="0" max="120" data-number="bisnis_manajemen.cash_runway_bulan" value="${esc(b.bisnis_manajemen?.cash_runway_bulan ?? '')}"></label>
-          <label class="field"><span class="field-label">Tunggakan pinjaman saat ini (hari)</span>
-               <span class="field-hint">Isi 0 bila tidak ada</span>
-               <input type="number" min="0" max="3650" data-number="keuangan.arrears_days" value="${esc(b.keuangan?.arrears_days ?? 0)}"></label>
-     </div>`;
-}
-
-function stepJaminan() {
-     const ag = state.borrower.agunan || {};
-     const none = !ag.jenis;
-     return `
-     <label class="field"><span class="field-label">Jenis jaminan</span>
-          <select data-collateral><option value=""${none ? ' selected' : ''}>Tanpa jaminan</option>${options(COLLATERAL_OPTIONS, ag.jenis)}</select></label>
-     ${none ? '<p class="note">Tanpa jaminan, sistem belum bisa menghitung jumlah pinjaman yang aman.</p>' : amountField('agunan.nilai_agunan', 'Perkiraan nilai jaminan', 'Harga pasar saat ini', true)}
-     <label class="check"><input type="checkbox" data-bool="agunan.personal_guarantee"${ag.personal_guarantee ? ' checked' : ''}>
-          <span>Pemilik bersedia menjadi penjamin pribadi</span></label>`;
-}
-
-function stepWawancara() {
-     return `
-     <p class="note">Diisi petugas setelah wawancara. Pertanyaan yang belum dinilai memakai nilai bawaan sistem (setara "Cukup" ke "Baik").</p>
-     ${INTERVIEW_QUESTIONS.map((q) => {
-          const current = state.interview[q.key] ?? null;
-          return `<fieldset class="field"><legend class="field-label">${esc(q.label)}</legend>
-               <div class="scale">
-                    <label class="scale-opt"><input type="radio" name="iv-${q.key}" data-interview="${q.key}" value=""${current === null ? ' checked' : ''}><span>Belum dinilai</span></label>
-                    ${INTERVIEW_SCALE.map((s) => `<label class="scale-opt"><input type="radio" name="iv-${q.key}" data-interview="${q.key}" value="${s.value}"${current === s.value ? ' checked' : ''}><span>${esc(s.label)}</span></label>`).join('')}
-               </div></fieldset>`;
-     }).join('')}`;
-}
-
-const STEP_RENDER = [stepDataUsaha, stepPinjaman, stepKeuangan, stepJaminan, stepWawancara];
-
-function renderForm() {
-     const s = state.step;
-     const last = s === STEPS.length - 1;
-     return `
-     <section class="panel">
-          <div class="panel-head">
-               <div><h1>Ajukan pinjaman</h1><p class="muted">Langkah ${s + 1} dari ${STEPS.length}: <b>${STEPS[s]}</b></p></div>
-               <button type="button" class="btn ghost" data-action="demo">Isi contoh Bu Sari</button>
-          </div>
-          <ol class="progress" aria-label="Kemajuan formulir">${STEPS.map((name, i) => `
-               <li class="${i < s ? 'done' : i === s ? 'now' : ''}"><button type="button" data-goto="${i}"${i > s ? ' disabled' : ''}><span class="dot">${i + 1}</span><span class="progress-name">${name}</span></button></li>`).join('')}
-          </ol>
-          <form class="form" data-form novalidate>
-               ${STEP_RENDER[s]()}
-               ${state.errors.length ? `<div class="alert" role="alert">${state.errors.map((e) => `<p>${esc(e)}</p>`).join('')}</div>` : ''}
-               <div class="form-actions">
-                    ${s > 0 ? '<button type="button" class="btn ghost" data-action="back">Kembali</button>' : '<span></span>'}
-                    <button type="submit" class="btn primary">${last ? 'Lihat hasil' : 'Lanjut'}</button>
-               </div>
-          </form>
-     </section>`;
-}
-
-/* ----------------------------------------------------------- hasil ------ */
-
-function stars(n) {
-     return `<span class="stars" aria-label="${n} dari 5 bintang">${'★'.repeat(n)}<span class="stars-off">${'★'.repeat(5 - n)}</span></span>`;
-}
-
-function renderResult() {
-     const { result, atSuggested } = state.analysis;
-     const v = toPlain(result, atSuggested);
-     const lengkap = state.mode === 'lengkap';
-     const open = lengkap || state.detailOpen;
-     const inst = v.installment;
-     const sug = v.amount;
-     const showSuggestion = sug.suggested > 0 && sug.suggested < sug.requested && sug.suggestedInstallment;
-
-     return `
-     <section class="panel result">
-          <div class="panel-head">
-               <div><p class="muted">Hasil analisis</p><h1>${esc(v.name)}</h1></div>
-               <div class="head-actions">
-                    ${state.resultLoanId
-                         ? `<button type="button" class="btn ghost" data-open="${esc(state.resultLoanId)}">← Kembali ke pinjaman</button>`
-                         : `<button type="button" class="btn ghost" data-action="edit">Ubah data</button>
-                    <button type="button" class="btn primary" data-action="save-loan">Simpan ke daftar pinjaman</button>`}
-                    ${FRAMED ? '' : '<button type="button" class="btn ghost" data-action="print">Cetak</button>'}
-               </div>
-          </div>
-
-          <div class="status tone-${v.status.tone}" role="status">
-               <div class="status-main">
-                    <span class="lamp" aria-hidden="true"></span>
-                    <div><p class="status-label">${esc(v.status.label)}</p><p class="status-tone">Lampu ${v.status.tone} — ${TONE_WORD[v.status.tone]}</p></div>
-               </div>
-               ${v.grade ? `<div class="grade">
-                    <p class="grade-line"><span class="grade-code">${esc(v.grade.grade)}</span> — <b>${esc(v.grade.label)}</b></p>
-                    <p class="grade-meaning">${esc(v.grade.meaning)}</p>
-               </div>` : ''}
-          </div>
-          <p class="reason">${esc(v.reason)}</p>
-
-          <div class="kpis">
-               <div class="kpi"><p class="kpi-label">Jumlah yang aman dipinjam</p><p class="kpi-value">${esc(sug.suggested > 0 ? rupiah(sug.suggested) : '—')}</p><p class="kpi-sub">Diajukan ${esc(rupiah(sug.requested))}</p></div>
-               <div class="kpi"><p class="kpi-label">Cicilan per bulan</p><p class="kpi-value">${esc(rupiah(inst.monthly))}</p><p class="kpi-sub">${esc(inst.tenor)} bulan, untuk ${esc(rupiah(sug.requested))}</p></div>
-               ${inst.daily ? `<div class="kpi"><p class="kpi-label">Sisihkan per hari kerja</p><p class="kpi-value">${esc(rupiah(inst.daily))}</p><p class="kpi-sub">agar cicilan selalu siap</p></div>` : ''}
-          </div>
-          <p class="sentence">${esc(sug.sentence)}</p>
-          ${showSuggestion ? `<div class="suggest">
-               <p><b>Saran:</b> pinjam <b>${esc(rupiah(sug.suggested))}</b> selama ${esc(sug.suggestedInstallment.tenor)} bulan. Cicilan sekitar <b>${esc(rupiah(sug.suggestedInstallment.monthly))} per bulan</b>${sug.suggestedInstallment.daily ? `, atau sisihkan <b>${esc(rupiah(sug.suggestedInstallment.daily))} per hari</b>` : ''}.</p>
-               ${sug.suggestedStatus ? `<p>Pada jumlah ini hasilnya: <span class="pill tone-${sug.suggestedStatus.tone}">${esc(sug.suggestedStatus.label)}</span></p>` : ''}
-          </div>` : ''}
-
-          ${renderSimulator()}
-
-          <h2>Nilai per bagian</h2>
-          <ul class="pillars">${v.pillars.map((p) => `
-               <li><span class="pillar-name">${esc(p.name)}${lengkap ? ` <span class="tech">${esc(num(p.score, 1))}</span>` : ''}</span>${stars(p.stars)}<span class="pillar-word">${esc(p.word)}</span></li>`).join('')}
-          </ul>
-
-          ${v.stress ? `<h2>Perlu diingat</h2>
-          <div class="callout">
-               ${v.stress.caution ? `<p><b>${esc(v.stress.caution)}</b></p>` : ''}
-               <p>${esc(v.stress.summary)}</p>
-               <details><summary>Lihat kondisi yang diuji</summary>
-                    <ul class="stress">${v.stress.items.map((s) => `<li class="${s.survives ? 'ok' : 'fail'}"><span>${s.survives ? '✓ Tahan' : '✕ Belum tahan'}</span> jika ${esc(s.text)}</li>`).join('')}</ul>
-               </details>
-          </div>` : ''}
-
-          <h2>Apa yang perlu diperbaiki</h2>
-          ${v.fixes.length ? `<ul class="fixes">${v.fixes.map((f) => `<li><label class="check"><input type="checkbox"><span>${esc(f.text)}</span></label></li>`).join('')}</ul>` : '<p class="muted">Tidak ada yang perlu diperbaiki dari data yang diisi.</p>'}
-
-          ${v.grade ? `<p class="disclaimer">${esc(v.grade.disclaimer)} ${esc(v.footnote)}</p>` : `<p class="disclaimer">${esc(v.footnote)}</p>`}
-
-          ${lengkap ? '' : `<button type="button" class="btn ghost wide" data-action="detail" aria-expanded="${open}">${open ? 'Sembunyikan detail' : 'Lihat detail perhitungan'}</button>`}
-          ${open ? renderDetail(result) : ''}
-     </section>`;
-}
-
-/* ---------------------------------------------- simulasi "bagaimana jika" */
-
-function renderSimulator() {
-     const sim = state.sim;
-     return `<h2>Coba: bagaimana jika?</h2>
-     <div class="sim">
-          <p class="muted">Ubah jumlah, lama, atau bunga — hasilnya dihitung ulang oleh mesin yang sama.</p>
-          <div class="field-grid">
-               <label class="field"><span class="field-label">Jumlah pinjaman</span>
-                    <span class="money"><span class="money-prefix">Rp</span><input type="text" inputmode="numeric" data-sim="amount" value="${esc(fmtInput(sim.amount))}"></span></label>
-               <label class="field"><span class="field-label">Lama pinjaman: <output data-sim-tenor>${esc(sim.tenor)} bulan</output></span>
-                    <input type="range" min="6" max="120" step="6" data-sim="tenor" value="${esc(sim.tenor)}"></label>
-               <label class="field"><span class="field-label">Bunga per tahun (%)</span>
-                    <input type="number" min="0" max="60" step="0.5" data-sim="rate" value="${esc(Math.round(sim.rate * 1000) / 10)}"></label>
-          </div>
-          <div class="sim-out" data-sim-out aria-live="polite">${simOutput()}</div>
-     </div>`;
-}
-
-function simOutput() {
-     const { amount, tenor, rate } = state.sim;
-     if (!(amount > 0) || !(tenor > 0)) return '<p class="muted">Isi jumlah dan lama pinjaman.</p>';
-     const result = analyze({ ...state.analyzedBorrower, plafon_diajukan: amount, tenor_bulan: tenor, bunga_tahunan: rate });
-     const v = toPlain(result);
-     const dscr = result.ratios?.dscr;
-     return `<p><span class="pill tone-${v.status.tone}">${esc(v.status.label)}</span> ${v.grade ? `<b>${esc(v.grade.grade)}</b> — ${esc(v.grade.label)}` : ''}</p>
-          <p>Cicilan <b>${esc(rupiah(v.installment.monthly))}/bulan</b>${Number.isFinite(dscr) ? ` · uang usaha ${esc(num(dscr, 2))} kali cicilan` : ''}${v.installment.daily ? ` · sisihkan ${esc(rupiah(v.installment.daily))}/hari` : ''}.</p>
-          <p class="muted">${esc(v.reason)}</p>`;
-}
-
-/* -------------------------------------------- detail (tampilan lengkap) - */
-
-function row(cells) {
-     return `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`;
-}
-
-function renderDetail(r) {
-     const credit = r.credit || {};
-     const pricing = r.risk?.pricing || {};
-     const bu = pricing.build_up || {};
-     const bb = borrowingBase(state.borrower.keuangan || {});
-     const metrics = plainMetrics(r);
-     const ratioRows = [
-          ['DSCR', num(r.ratios.dscr), 'Uang usaha ÷ cicilan setahun'],
-          ['Rasio cicilan', pct(r.ratios.ds_ratio), 'Cicilan ÷ uang usaha'],
-          ['ICR', num(r.ratios.icr), 'Laba usaha ÷ bunga'],
-          ['DTI', pct(r.ratios.dti), 'Cicilan ÷ omzet'],
-          ['Current ratio', num(r.ratios.current_ratio), 'Harta lancar ÷ utang jangka pendek'],
-          ['Quick ratio', num(r.ratios.quick_ratio), 'Tanpa stok'],
-          ['DER', num(r.ratios.der), 'Utang ÷ modal sendiri'],
-          ['ROA / ROE / NPM', `${pct(r.ratios.roa)} · ${pct(r.ratios.roe)} · ${pct(r.ratios.npm)}`, 'Untung dibanding harta, modal, omzet'],
-          ['LTV', pct(r.extra?.ltv), 'Pinjaman ÷ nilai jaminan'],
-          ['Altman Z', num(r.ratios.altman_z), 'Risiko bangkrut (> 2,99 aman)']
-     ];
-     return `
-     <div class="detail">
-          <h2>Rincian untuk analis</h2>
-          <div class="detail-grid">
-               <div class="card"><h3>Skor & peringkat</h3><table>
-                    ${row(['Skor akhir', `<b>${num(r.finalScore, 1)}</b> / 100`])}
-                    ${row(['Peringkat', `${esc(r.risk?.pefindo?.grade)} (${esc(r.risk?.pefindo?.category_label || '')})`])}
-                    ${row(['Keputusan mesin', esc(r.decision?.decision)])}
-                    ${row(['Keyakinan keputusan', num(r.decision?.confidence)])}
-                    ${row(['Segmen', esc(r.segment?.label)])}
-               </table></div>
-               <div class="card"><h3>Risiko kredit</h3><table>
-                    ${row(['PD 12 bulan', pct(credit.pd?.pd_12m, 2)])}
-                    ${row(['PD seumur fasilitas', pct(credit.pd?.pd_lifetime, 2)])}
-                    ${row(['LGD', pct(credit.lgd?.lgd)])}
-                    ${row(['EAD', fullRp(credit.ead?.ead)])}
-                    ${row(['Expected loss / tahun', fullRp(credit.loss?.el_amount)])}
-                    ${row(['Unexpected loss', fullRp(credit.loss?.ul_amount)])}
-               </table></div>
-               <div class="card"><h3>Bunga berbasis risiko</h3><table>
-                    ${row(['Biaya dana', pct(bu.funding_cost, 2)])}
-                    ${row(['Expected loss', pct(bu.expected_loss, 2)])}
-                    ${row(['Biaya operasional', pct(bu.opex, 2)])}
-                    ${row(['Biaya modal', pct(bu.capital_charge, 2)])}
-                    ${row(['Margin', pct(bu.target_margin, 2)])}
-                    ${row(['Premi tenor', pct(bu.tenor_spread, 2)])}
-                    ${row(['<b>Bunga disarankan</b>', `<b>${pct(pricing.recommended_rate, 2)}</b>`])}
-                    ${row(['Titik impas', pct(pricing.breakeven_rate, 2)])}
-                    ${row(['RAROC', `${num(pricing.raroc)}x ${pricing.meets_hurdle ? '✓' : '✕'} (hurdle ${pct(pricing.raroc_hurdle, 0)})`])}
-               </table></div>
-               <div class="card"><h3>Modal regulasi & pencairan</h3><table>
-                    ${row(['Kelas eksposur', esc(credit.rwa?.exposure_class_label)])}
-                    ${row(['ATMR', fullRp(credit.rwa?.rwa)])}
-                    ${row(['Modal + buffer', fullRp(credit.rwa?.capital_with_buffer)])}
-                    ${row(['Batas tarik awal (borrowing base)', bb ? fullRp(bb.availability) : 'Perlu data tagihan & stok'])}
-               </table></div>
-          </div>
-
-          <div class="card"><h3>Rasio keuangan</h3><table class="wide">
-               <thead><tr><th>Rasio</th><th>Nilai</th><th>Artinya</th></tr></thead>
-               <tbody>${ratioRows.map(([a, b, c]) => row([esc(a), esc(b), `<span class="muted">${esc(c)}</span>`])).join('')}</tbody>
-          </table>
-          <ul class="plain-list">${metrics.map((m) => `<li><b>${esc(m.term)}:</b> ${esc(m.text)}</li>`).join('')}</ul></div>
-
-          <div class="card"><h3>Skor per pilar & bobot</h3><table class="wide">
-               <thead><tr><th>Pilar</th><th>Skor</th><th>Bobot</th><th>Kontribusi</th></tr></thead>
-               <tbody>${(r.pillars || []).map((p) => row([`${esc(PILLAR_PLAIN[p.key] || p.label)} <span class="muted">${esc(p.label)}</span>`, num(p.score, 1), pct(p.weight, 0), num(p.score * p.weight, 1)])).join('')}</tbody>
-          </table></div>
-
-          <div class="card"><h3>Aturan kebijakan</h3>
-               <ul class="rules">${(r.decision?.rules_evaluated || []).map((x) => `<li class="${x.violated ? 'fail' : 'ok'}">${esc(x.message)} <span class="muted">(${x.enforcement === 'hard' ? 'wajib' : 'lunak'})</span></li>`).join('')}</ul>
-               ${r.decision?.stress_capped ? '<p class="muted">Keputusan dibatasi REVIEW karena hasil uji kondisi sulit "sangat rentan".</p>' : ''}
-          </div>
-
-          <div class="card"><h3>Uji kondisi sulit (DSCR)</h3><table class="wide">
-               <thead><tr><th>Skenario</th><th>DSCR</th><th>Hasil</th></tr></thead>
-               <tbody>${row(['Dasar', num(r.stress?.base?.dscr), ''])}${(r.stress?.scenarios || []).map((s) => row([esc(s.label), num(s.dscr), s.survives ? '✓ tahan' : '✕'])).join('')}</tbody>
-          </table><p class="muted">${esc(r.stress?.recommendation || '')}</p></div>
-
-          <div class="card"><h3>Syarat (covenant) yang disarankan</h3>
-               <ul class="plain-list">${(r.covenant?.covenants || []).map((c) => `<li><b>${esc(c.label)}:</b> ${esc(c.description)}</li>`).join('')}</ul>
-          </div>
-          <p class="muted small">Mesin v${esc(r.meta?.engine_version)} · konfigurasi ${esc(r.meta?.config_version)} (${esc(r.meta?.config_hash)})</p>
-     </div>`;
-}
-
-/* ------------------------------------------------------------ render ---- */
-
-const root = () => document.getElementById('app');
 
 /** Di dalam frame (mis. Artifact claude.ai) dialog, cetak, dan unduhan diblokir host. */
 const FRAMED = (() => {
@@ -433,23 +48,143 @@ const FRAMED = (() => {
           return true;
      }
 })();
+
+/** Formulir kosong: lama usaha & cadangan kas tidak diisi diam-diam (mesin menilai netral). */
+function blankBorrower() {
+     const b = emptyBorrower();
+     b.bisnis_manajemen.track_record_tahun = null;
+     b.bisnis_manajemen.cash_runway_bulan = null;
+     b.periode_angsuran = 'bulanan';
+     b.skema_angsuran = 'annuity';
+     b.agunan = { jenis: null, nilai_agunan: 0, personal_guarantee: false };
+     return b;
+}
+
+const blankDraft = () => ({ step: 0, borrower: blankBorrower(), documents: [], consent: false, editingId: null, fixNote: null });
+
+/* ------------------------------------------------------------ state ----- */
+
+const state = {
+     role: 'pemohon',
+     view: 'apply',
+     mode: 'sederhana',
+     loans: [],
+     loanId: null,
+     draft: blankDraft(),
+     errors: [],
+     ui: {},
+     sim: null,
+     confirm: null,
+     backupText: null,
+     notice: ''
+};
+
+/** Berkas laporan terakhir (di memori saja) untuk OCR. */
+let lastReport = null;
+
+function load() {
+     try {
+          const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+          if (saved) {
+               state.role = saved.role === 'petugas' ? 'petugas' : 'pemohon';
+               state.mode = saved.mode === 'lengkap' ? 'lengkap' : 'sederhana';
+               if (saved.draft?.borrower) state.draft = { ...blankDraft(), ...saved.draft };
+          }
+          const loans = JSON.parse(localStorage.getItem(LOANS_KEY) || '[]');
+          // Data versi lama (tanpa status alur baru) tidak dibawa.
+          if (Array.isArray(loans)) state.loans = loans.filter((l) => l && l.history);
+     } catch {
+          /* penyimpanan tidak tersedia — mulai kosong */
+     }
+     state.view = state.role === 'petugas' ? 'queue' : 'apply';
+}
+
+function save() {
+     try {
+          localStorage.setItem(STORE_KEY, JSON.stringify({ role: state.role, mode: state.mode, draft: state.draft }));
+          localStorage.setItem(LOANS_KEY, JSON.stringify(state.loans));
+     } catch {
+          /* abaikan */
+     }
+}
+
+/* ---------------------------------------------------------- helpers ----- */
+
+const root = () => document.getElementById('app');
 const findLoan = (id) => state.loans.find((l) => l.id === id) || null;
 
-function render() {
+function setPath(obj, path, value) {
+     const keys = path.split('.');
+     const last = keys.pop();
+     const target = keys.reduce((o, k) => (o[k] ??= {}), obj);
+     target[last] = value;
+}
+
+function updateLoan(id, fn) {
+     const i = state.loans.findIndex((l) => l.id === id);
+     if (i < 0) return false;
+     try {
+          state.loans[i] = fn(state.loans[i]);
+          save();
+          return true;
+     } catch (err) {
+          state.notice = err.message;
+          return false;
+     }
+}
+
+function openLoan(id) {
+     state.loanId = id;
+     state.ui = {};
+     state.confirm = null;
+     state.view = state.role === 'petugas' ? 'detail' : 'my-detail';
+     const loan = findLoan(id);
+     if (state.role === 'petugas' && loan) {
+          const base = effectiveBorrower(loan);
+          state.sim = { amount: base.plafon_diajukan, tenor: base.tenor_bulan, rate: base.bunga_tahunan ?? 0.14, base };
+     }
+     window.scrollTo({ top: 0 });
+}
+
+/* ------------------------------------------------------------ render ---- */
+
+const NAV = {
+     pemohon: [['apply', 'Ajukan pinjaman'], ['my', 'Pengajuan saya']],
+     petugas: [['queue', 'Pengajuan masuk'], ['portfolio', 'Portofolio']]
+};
+const NAV_OF = { apply: 'apply', my: 'my', 'my-detail': 'my', queue: 'queue', detail: 'queue', portfolio: 'portfolio' };
+
+function renderChrome() {
      document.documentElement.dataset.mode = state.mode;
+     document.querySelectorAll('[data-role]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === state.role)));
      document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
-     const section = state.view === 'pinjaman' || state.view === 'pinjaman-detail' ? 'pinjaman' : 'ajukan';
-     document.querySelectorAll('[data-nav]').forEach((b) => {
-          if (b.dataset.nav === section) b.setAttribute('aria-current', 'page');
-          else b.removeAttribute('aria-current');
-     });
-     const lengkap = state.mode === 'lengkap';
+     const modeSwitch = document.querySelector('.mode-switch');
+     if (modeSwitch) modeSwitch.hidden = state.role !== 'petugas';
+     const nav = document.getElementById('nav');
+     if (nav) {
+          let current = NAV_OF[state.view];
+          if (state.view === 'detail' && ['aktif', 'lunas'].includes(findLoan(state.loanId)?.status)) current = 'portfolio';
+          nav.innerHTML = NAV[state.role].map(([key, text]) => {
+               const badge = key === 'my' ? state.loans.filter((l) => ['perbaikan', 'ditawarkan'].includes(l.status)).length
+                    : key === 'queue' ? state.loans.filter((l) => ['diajukan', 'diterima'].includes(l.status)).length : 0;
+               return `<button type="button" data-nav="${key}"${key === current ? ' aria-current="page"' : ''}>${esc(text)}${badge ? ` <span class="badge">${badge}</span>` : ''}</button>`;
+          }).join('');
+     }
+}
+
+function render() {
+     renderChrome();
+     const lengkap = state.mode === 'lengkap' && state.role === 'petugas';
+     const loan = findLoan(state.loanId);
      let html;
      try {
-          if (state.view === 'hasil' && state.analysis) html = renderResult();
-          else if (state.view === 'pinjaman') html = renderLoanList(state.loans, { lengkap });
-          else if (state.view === 'pinjaman-detail' && findLoan(state.loanId)) html = renderLoanDetail(findLoan(state.loanId), { lengkap, ui: state.ui });
-          else html = renderForm();
+          if (state.view === 'apply') html = renderApplyForm(state.draft, { errors: state.errors, ui: state.ui });
+          else if (state.view === 'my') html = renderMyApplications(state.loans);
+          else if (state.view === 'my-detail' && loan) html = renderMyApplication(loan);
+          else if (state.view === 'queue') html = renderQueue(state.loans);
+          else if (state.view === 'portfolio') html = renderLoanList(state.loans, { lengkap });
+          else if (state.view === 'detail' && loan) html = renderLenderDetail(loan, { lengkap, ui: state.ui, sim: state.sim });
+          else html = state.role === 'petugas' ? renderQueue(state.loans) : renderMyApplications(state.loans);
      } catch (err) {
           html = `<section class="panel"><p class="alert" role="alert">Terjadi kesalahan saat menampilkan halaman: ${esc(err.message)}</p></section>`;
      }
@@ -457,10 +192,13 @@ function render() {
      state.notice = '';
 }
 
-/** Konfirmasi di halaman (pengganti confirm/prompt yang diblokir di dalam frame). */
+/* ------------------------------------------------- konfirmasi di halaman */
+
 const CONFIRM_TEXT = {
      'delete-loan': { message: 'Hapus pinjaman ini dari daftar? Tindakan ini tidak bisa dibatalkan.', yes: 'Ya, hapus' },
      reject: { message: 'Tolak pengajuan ini? Tulis alasannya; pemohon akan membacanya.', yes: 'Tolak pengajuan', reason: true },
+     'decline-offer': { message: 'Tolak penawaran ini? Anda bisa mengajukan lagi nanti.', yes: 'Tolak penawaran', reason: true },
+     'accept-offer': { message: 'Terima penawaran ini? Bank akan menyiapkan pencairan.', yes: 'Ya, terima' },
      'draw-rest': { message: 'Sertifikat borrowing base terbaru sudah diperiksa dan cukup untuk menarik sisa plafon?', yes: 'Ya, tarik sisa plafon' },
      restructure: { message: 'Terapkan keringanan ini? Cicilan dan lama pinjaman akan diperbarui.', yes: 'Ya, terapkan' }
 };
@@ -471,7 +209,7 @@ function renderConfirm() {
      const t = CONFIRM_TEXT[c.action];
      return `<div class="confirm" role="alertdialog" aria-labelledby="confirm-msg">
           <p id="confirm-msg"><b>${esc(t.message)}</b></p>
-          ${t.reason ? '<label class="field"><span class="field-label">Alasan</span><input type="text" id="confirm-reason" maxlength="300"></label>' : ''}
+          ${t.reason ? '<label class="field" for="confirm-reason"><span class="field-label">Alasan</span><input type="text" id="confirm-reason" maxlength="300"></label>' : ''}
           <div class="confirm-actions">
                <button type="button" class="btn ghost" data-action="confirm-no">Batal</button>
                <button type="button" class="btn primary" data-action="confirm-yes">${esc(t.yes)}</button>
@@ -490,88 +228,117 @@ function runConfirmed() {
      const c = state.confirm;
      state.confirm = null;
      if (!c) return;
+     const reason = c.reason || '';
      if (c.action === 'delete-loan') {
           state.loans = state.loans.filter((l) => l.id !== c.id);
           save();
-          state.view = 'pinjaman';
+          state.view = state.role === 'petugas' ? 'queue' : 'my';
           state.notice = 'Pinjaman dihapus.';
      } else if (c.action === 'reject') {
-          updateLoan(c.id, (l) => rejectLoan(l, { reason: c.reason || '' }));
+          if (updateLoan(c.id, (l) => rejectLoan(l, { reason }))) state.notice = 'Pengajuan ditolak. Pemohon akan melihat alasannya.';
+     } else if (c.action === 'decline-offer') {
+          if (updateLoan(c.id, (l) => declineOffer(l, { reason }))) state.notice = 'Penawaran ditolak.';
+     } else if (c.action === 'accept-offer') {
+          if (updateLoan(c.id, (l) => acceptOffer(l))) state.notice = 'Penawaran diterima. Bank akan menyiapkan pencairan.';
      } else if (c.action === 'draw-rest') {
           updateLoan(c.id, (l) => drawRemaining(l));
      } else if (c.action === 'restructure') {
-          updateLoan(c.id, (l) => applyRestructuring(l, c.type));
-          if (findLoan(c.id)?.restructuring) state.notice = 'Keringanan cicilan diterapkan.';
+          if (updateLoan(c.id, (l) => applyRestructuring(l, c.type))) state.notice = 'Keringanan cicilan diterapkan.';
      }
 }
 
-/* ------------------------------------------------------------ actions --- */
+/* ------------------------------------------------------ berkas laporan -- */
 
-function showAnalysis(borrower, loanId = null) {
-     state.analyzedBorrower = borrower;
-     state.analysis = analyzeWithSuggestion(borrower);
-     state.sim = { amount: borrower.plafon_diajukan, tenor: borrower.tenor_bulan, rate: borrower.bunga_tahunan ?? 0.14 };
-     state.resultLoanId = loanId;
-     state.view = 'hasil';
-     state.detailOpen = false;
-     window.scrollTo({ top: 0 });
+function replaceDoc(doc) {
+     state.draft.documents = [...(state.draft.documents || []).filter((d) => d.key !== doc.key), doc];
 }
 
-function runAnalysis() {
-     showAnalysis(applyInterview(state.borrower, state.interview, emptyBorrower().bisnis_manajemen));
+/** Terapkan kandidat angka yang jelas (satu periode / tahun terbaru). */
+function autoApply(doc) {
+     const idx = pickCandidate(doc.extraction?.candidates || []);
+     if (idx !== null) state.draft.borrower = applyCandidate(state.draft.borrower, doc, idx);
+     return idx;
 }
 
-function loadDemo() {
-     const b = demoBuSari();
-     state.borrower = b;
-     state.interview = {};
-     for (const q of INTERVIEW_QUESTIONS) state.interview[q.key] = scoreToInterview(b.bisnis_manajemen[q.fields[0]]);
-     state.errors = [];
-     save();
-}
-
-function openLoan(id) {
-     state.loanId = id;
-     state.ui = {};
-     state.view = 'pinjaman-detail';
-     window.scrollTo({ top: 0 });
-}
-
-function updateLoan(id, fn) {
-     const i = state.loans.findIndex((l) => l.id === id);
-     if (i < 0) return;
-     try {
-          state.loans[i] = fn(state.loans[i]);
-          save();
-     } catch (err) {
-          state.notice = err.message;
-     }
-}
-
-function onInput(e) {
-     const t = e.target;
-     if (t.dataset.sim) return onSimInput(t);
-     if (t.closest('[data-monitor], [data-decide]')) return;
-     const b = state.borrower;
-     if (t.dataset.amount) {
-          const n = parseAmount(t.value);
-          setPath(b, t.dataset.amount, n);
-          const echo = root().querySelector(`[data-echo="${CSS.escape(t.dataset.amount)}"]`);
-          if (echo) echo.textContent = Number.isFinite(n) && n !== 0 ? `= ${rupiah(n)}` : t.value.trim() ? 'Angka belum terbaca' : '';
-     } else if (t.dataset.number) {
-          setPath(b, t.dataset.number, t.value === '' ? null : Number(t.value));
-     } else if (t.dataset.percent) {
-          setPath(b, t.dataset.percent, t.value === '' ? null : Number(t.value) / 100);
-     } else if (t.dataset.path && t.type !== 'radio') {
-          setPath(b, t.dataset.path, t.value);
+async function readUpload(bytes, filename, key) {
+     if (bytes.length > MAX_FILE_BYTES) throw new Error('Ukuran berkas maksimal 5 MB.');
+     const doc = await readDocument(bytes, filename, key);
+     replaceDoc(doc);
+     if (key === 'laporan_keuangan') {
+          lastReport = { bytes, filename: doc.filename };
+          const n = doc.extraction?.candidates?.length || 0;
+          const idx = autoApply(doc);
+          state.ui = { ...state.ui, ocrReady: !n, reading: null };
+          state.notice = n
+               ? idx !== null ? `Angka dari ${doc.filename} sudah terisi. Periksa ringkasannya.` : 'Berkas berisi beberapa periode. Pilih yang dipakai.'
+               : '';
      } else {
-          return;
+          state.notice = `${doc.filename} dilampirkan.`;
      }
      save();
 }
+
+async function handleUpload(input) {
+     const file = input.files?.[0];
+     if (!file) return;
+     const key = input.dataset.upload;
+     state.ui = { ...state.ui, reading: key === 'laporan_keuangan' ? `Membaca ${file.name}…` : null };
+     render();
+     try {
+          await readUpload(new Uint8Array(await file.arrayBuffer()), file.name, key);
+     } catch (err) {
+          state.ui = { ...state.ui, reading: null };
+          state.notice = `Berkas tidak bisa dipakai: ${err.message}`;
+     }
+     render();
+}
+
+async function loadSampleReport() {
+     state.ui = { ...state.ui, reading: 'Membaca laporan contoh…' };
+     render();
+     try {
+          const res = await fetch(SAMPLE_REPORT_URL);
+          if (!res.ok) throw new Error('berkas contoh tidak ditemukan');
+          await readUpload(new Uint8Array(await res.arrayBuffer()), SAMPLE_REPORT_URL.split('/').pop(), 'laporan_keuangan');
+     } catch (err) {
+          state.ui = { ...state.ui, reading: null };
+          state.notice = `Laporan contoh gagal dibaca: ${err.message}`;
+     }
+     render();
+}
+
+async function runOcr() {
+     const doc = state.draft.documents.find((d) => d.key === 'laporan_keuangan');
+     if (!doc || !lastReport) {
+          state.notice = 'Pilih ulang berkas fotonya, lalu tekan baca lagi.';
+          return render();
+     }
+     try {
+          const { ocrFinancialFile } = await import('./ocr.js');
+          const extraction = await ocrFinancialFile(lastReport.bytes, lastReport.filename, (text) => {
+               state.ui = { ...state.ui, reading: text };
+               const el = root().querySelector('.reading');
+               if (el) el.textContent = text;
+               else render();
+          });
+          const updated = { ...doc, extraction };
+          replaceDoc(updated);
+          if (extraction.candidates.length) autoApply(updated);
+          state.ui = { ...state.ui, reading: null, ocrReady: !extraction.candidates.length };
+          state.notice = extraction.message;
+     } catch (err) {
+          state.ui = { ...state.ui, reading: null };
+          state.notice = `OCR gagal: ${err.message} Isi angka sendiri di bagian bawah.`;
+     }
+     save();
+     render();
+}
+
+/* ------------------------------------------------------------- input ---- */
 
 let simTimer = null;
 function onSimInput(t) {
+     if (!state.sim) return;
      const key = t.dataset.sim;
      if (key === 'amount') state.sim.amount = parseAmount(t.value);
      if (key === 'tenor') {
@@ -583,46 +350,100 @@ function onSimInput(t) {
      clearTimeout(simTimer);
      simTimer = setTimeout(() => {
           const out = root().querySelector('[data-sim-out]');
-          if (out) out.innerHTML = simOutput();
+          if (out) out.innerHTML = simOutput(state.sim);
      }, 120);
+}
+
+function onInput(e) {
+     const t = e.target;
+     if (t.dataset.sim) return onSimInput(t);
+     if (!t.closest('[data-apply-form]')) return undefined;
+     const b = state.draft.borrower;
+     if (t.dataset.amount) {
+          const n = parseAmount(t.value);
+          setPath(b, t.dataset.amount, n);
+          const echo = root().querySelector(`[data-echo="${CSS.escape(t.dataset.amount)}"]`);
+          if (echo) echo.textContent = Number.isFinite(n) && n !== 0 ? `= ${rupiah(n)}` : t.value.trim() ? 'Angka belum terbaca' : '';
+     } else if (t.dataset.number) {
+          setPath(b, t.dataset.number, t.value === '' ? null : Number(t.value));
+     } else if (t.dataset.path && t.type !== 'radio') {
+          setPath(b, t.dataset.path, t.value);
+     } else {
+          return undefined;
+     }
+     save();
+     return undefined;
 }
 
 function onChange(e) {
      const t = e.target;
-     if (t.matches('[data-import]')) {
-          importBackup(t.files?.[0]);
-          return undefined;
-     }
+     if (t.matches('[data-import]')) return importBackup(t.files?.[0]);
+     if (t.dataset.upload) return handleUpload(t);
+     const id = t.dataset.id;
      if (t.dataset.condition) {
-          updateLoan(t.dataset.id, (l) => toggleCondition(l, t.dataset.condition, t.checked));
+          updateLoan(id, (l) => toggleCondition(l, t.dataset.condition, t.checked));
           return render();
      }
-     if (t.dataset.sim || t.closest('[data-monitor], [data-decide]')) return;
-     const b = state.borrower;
+     if (t.dataset.verify) {
+          updateLoan(id, (l) => verifyDocument(l, t.dataset.verify, t.checked));
+          return render();
+     }
+     if (t.dataset.lenderInterview) {
+          updateLoan(id, (l) => setInterview(l, t.dataset.lenderInterview, t.value));
+          refreshSimBase();
+          return render();
+     }
+     if (t.dataset.lenderNumber) {
+          updateLoan(id, (l) => {
+               const borrower = structuredClone(l.borrower);
+               setPath(borrower, t.dataset.lenderNumber, t.value === '' ? null : Number(t.value));
+               return { ...l, borrower };
+          });
+          refreshSimBase();
+          return render();
+     }
+     if (t.dataset.sim) return undefined;
+     if (!t.closest('[data-apply-form]')) return undefined;
+     const b = state.draft.borrower;
      if (t.dataset.path && t.type === 'radio') setPath(b, t.dataset.path, t.value);
      else if (t.dataset.bool) setPath(b, t.dataset.bool, t.checked);
-     else if (t.dataset.interview) state.interview[t.dataset.interview] = t.value === '' ? null : Number(t.value);
+     else if (t.hasAttribute('data-consent')) state.draft.consent = t.checked;
      else if (t.hasAttribute('data-collateral')) {
           b.agunan = { ...(b.agunan || {}), jenis: t.value || null };
           if (!t.value) b.agunan.nilai_agunan = 0;
           save();
-          render();
-          return;
-     } else return;
+          return render();
+     } else return undefined;
      save();
+     return undefined;
 }
+
+function refreshSimBase() {
+     const loan = findLoan(state.loanId);
+     if (loan && state.sim) state.sim.base = effectiveBorrower(loan);
+}
+
+/* ------------------------------------------------------------- klik ----- */
 
 function onClick(e) {
      const el = e.target.closest('button');
-     if (!el) return;
+     if (!el) return undefined;
+     if (el.dataset.role) {
+          state.role = el.dataset.role;
+          state.view = state.role === 'petugas' ? 'queue' : 'apply';
+          state.confirm = null;
+          save();
+          return render();
+     }
      if (el.dataset.mode) {
           state.mode = el.dataset.mode;
           save();
           return render();
      }
-     if (el.dataset.nav || el.dataset.open) state.confirm = null;
      if (el.dataset.nav) {
-          state.view = el.dataset.nav === 'pinjaman' ? 'pinjaman' : 'form';
+          state.view = el.dataset.nav;
+          state.confirm = null;
+          state.errors = [];
           return render();
      }
      if (el.dataset.open) {
@@ -630,48 +451,69 @@ function onClick(e) {
           return render();
      }
      if (el.dataset.goto !== undefined) {
-          state.step = Number(el.dataset.goto);
+          state.draft.step = Number(el.dataset.goto);
           state.errors = [];
           return render();
      }
      const id = el.dataset.id;
      switch (el.dataset.action) {
-          case 'demo':
-               loadDemo();
-               state.step = STEPS.length - 1;
+          /* --- pemohon --- */
+          case 'demo-apply': {
+               const b = demoBuSari();
+               b.keuangan = blankBorrower().keuangan;
+               state.draft = { ...blankDraft(), borrower: b, documents: demoDocuments() };
+               state.errors = [];
+               save();
+               return loadSampleReport();
+          }
+          case 'sample-report':
+               return loadSampleReport();
+          case 'ocr':
+               return runOcr();
+          case 'pick-candidate': {
+               const doc = state.draft.documents.find((d) => d.key === 'laporan_keuangan');
+               if (doc) state.draft.borrower = applyCandidate(state.draft.borrower, doc, Number(el.dataset.index));
+               save();
                return render();
+          }
           case 'back':
-               state.step = Math.max(0, state.step - 1);
+               state.draft.step = Math.max(0, state.draft.step - 1);
                state.errors = [];
                return render();
-          case 'edit':
-               state.view = 'form';
-               state.step = 0;
-               return render();
-          case 'detail':
-               state.detailOpen = !state.detailOpen;
-               return render();
-          case 'print':
-               return window.print();
-          case 'new':
-               state.borrower = blankBorrower();
-               state.interview = {};
-               state.view = 'form';
-               state.step = 0;
+          case 'new-apply':
+               state.draft = blankDraft();
+               state.view = 'apply';
                state.errors = [];
                save();
                return render();
-          case 'save-loan': {
-               const loan = createLoan({ borrower: state.borrower, interview: state.interview });
+          case 'my-list':
+               state.view = 'my';
+               return render();
+          case 'fix-edit': {
+               const loan = findLoan(id);
+               if (!loan) return undefined;
+               state.draft = { step: 0, borrower: structuredClone(loan.borrower), documents: structuredClone(loan.documents || []), consent: true, editingId: loan.id, fixNote: loan.fix_note };
+               state.view = 'apply';
+               save();
+               return render();
+          }
+          /* --- petugas --- */
+          case 'queue':
+               state.view = 'queue';
+               return render();
+          case 'portfolio':
+               state.view = 'portfolio';
+               return render();
+          case 'demo-sari-submitted': {
+               const loan = createLoan({ borrower: { ...demoBuSari(), financial_import: { filename: 'laporan_keuangan_bu_sari.csv', label: 'Satu periode laporan · Rupiah' } }, documents: demoDocuments(), consent: true,
+                    interview: { model: 4, pasar: 4, pengalaman: 4, bayar: 4, kelola: 4, tren: 4, industri: 4 } });
+               loan.demo = 'sari';
+               loan.history.push({ at: loan.created_at, by: 'petugas', text: 'Contoh: wawancara sudah diisi (semua "Baik")' });
                state.loans.push(loan);
                save();
-               state.notice = 'Pengajuan disimpan ke daftar pinjaman.';
                openLoan(loan.id);
                return render();
           }
-          case 'list':
-               state.view = 'pinjaman';
-               return render();
           case 'demo-darto': {
                const loan = { ...demoPakDarto(), demo: 'darto' };
                state.loans.push(loan);
@@ -679,13 +521,25 @@ function onClick(e) {
                openLoan(loan.id);
                return render();
           }
-          case 'open-result': {
-               const loan = findLoan(id);
-               if (loan) showAnalysis(effectiveBorrower(loan), loan.id);
+          case 'detail':
+               state.ui = { ...state.ui, detailOpen: !state.ui.detailOpen };
                return render();
-          }
+          case 'disburse':
+               if (updateLoan(id, (l) => disburseLoan(l))) state.notice = 'Dana dicairkan. Pinjaman kini dipantau setiap bulan.';
+               return render();
+          case 'show-relief':
+               state.ui = { ...state.ui, relief: true };
+               return render();
+          /* --- bersama --- */
+          case 'export':
+               return exportBackup();
+          case 'backup-close':
+               state.backupText = null;
+               return render();
           case 'delete-loan':
           case 'reject':
+          case 'decline-offer':
+          case 'accept-offer':
           case 'draw-rest':
           case 'restructure':
                state.confirm = { action: el.dataset.action, id, type: el.dataset.type || null };
@@ -700,84 +554,85 @@ function onClick(e) {
           case 'confirm-no':
                state.confirm = null;
                return render();
-          case 'backup-close':
-               state.backupText = null;
-               return render();
-          case 'disburse':
-               updateLoan(id, (l) => disburseLoan(l));
-               if (findLoan(id)?.status === 'aktif') state.notice = 'Dana dicairkan. Pinjaman kini dipantau setiap bulan.';
-               return render();
-          case 'export': {
-               const text = JSON.stringify({ app: 'mezs-sederhana', version: 1, exported_at: new Date().toISOString(), loans: state.loans }, null, 2);
-               if (FRAMED) {
-                    // Unduhan diblokir di dalam frame: salin ke papan klip, atau tampilkan teks untuk disalin manual.
-                    state.backupText = text;
-                    navigator.clipboard?.writeText(text).then(() => {
-                         state.notice = 'Cadangan disalin. Tempel ke berkas teks dan simpan sebagai .json.';
-                         state.backupText = null;
-                         render();
-                    }).catch(() => {
-                         render();
-                         root().querySelector('#backup-text')?.select();
-                    });
-                    if (!navigator.clipboard) render();
-                    return undefined;
-               }
-               const blob = new Blob([text], { type: 'application/json' });
-               const link = document.createElement('a');
-               link.href = URL.createObjectURL(blob);
-               link.download = `cadangan-pinjaman-${new Date().toISOString().slice(0, 10)}.json`;
-               link.click();
-               setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-               return undefined;
-          }
-          case 'show-relief':
-               state.ui = { ...state.ui, relief: true };
-               return render();
           default:
+               return undefined;
      }
-     return undefined;
 }
 
-/** Pulihkan cadangan: digabung per id (yang dari file menimpa yang sama). */
-async function importBackup(file) {
-     if (!file) return;
-     try {
-          const data = JSON.parse(await file.text());
-          const loans = Array.isArray(data?.loans) ? data.loans : null;
-          if (!loans || !loans.every((l) => l && typeof l.id === 'string' && l.borrower && l.status)) throw new Error('Berkas bukan cadangan daftar pinjaman.');
-          const byId = new Map(state.loans.map((l) => [l.id, l]));
-          for (const l of loans) byId.set(l.id, l);
-          state.loans = [...byId.values()];
-          save();
-          state.notice = `${loans.length} pinjaman dipulihkan dari cadangan.`;
-     } catch (err) {
-          state.notice = `Gagal memulihkan: ${err.message}`;
-     }
-     state.view = 'pinjaman';
-     render();
-}
+/* ------------------------------------------------------------ kirim ----- */
 
 function formValues(form) {
      return Object.fromEntries(new FormData(form).entries());
 }
 
+function submitApplication() {
+     const d = state.draft;
+     const errs = validateApplicationStep(d.step, d);
+     state.errors = errs;
+     if (errs.length) return render();
+     if (d.step < APPLY_STEPS.length - 1) {
+          d.step += 1;
+          save();
+          window.scrollTo({ top: 0 });
+          return render();
+     }
+     for (let i = 0; i < APPLY_STEPS.length; i += 1) {
+          const stepErrs = validateApplicationStep(i, d);
+          if (stepErrs.length) {
+               d.step = i;
+               state.errors = stepErrs;
+               return render();
+          }
+     }
+     try {
+          let id = d.editingId;
+          if (id) {
+               updateLoan(id, (l) => resubmit(l, { borrower: d.borrower, documents: d.documents }));
+               state.notice = 'Perbaikan terkirim. Bank akan memeriksa ulang pengajuan Anda.';
+          } else {
+               const loan = createLoan({ borrower: d.borrower, documents: d.documents, consent: d.consent });
+               state.loans.push(loan);
+               id = loan.id;
+               state.notice = 'Pengajuan terkirim. Pantau prosesnya di halaman ini.';
+          }
+          state.draft = blankDraft();
+          save();
+          openLoan(id);
+     } catch (err) {
+          state.errors = [err.message];
+     }
+     return render();
+}
+
 function onSubmit(e) {
      const form = e.target;
-     if (form.matches('[data-decide]')) {
-          e.preventDefault();
-          const amount = parseAmount(formValues(form).amount);
-          updateLoan(form.dataset.decide, (l) => approveLoan(l, { amount }));
+     e.preventDefault();
+     if (form.matches('[data-apply-form]')) return submitApplication();
+     const v = formValues(form);
+     if (form.matches('[data-offer]')) {
+          const ok = updateLoan(form.dataset.offer, (l) => makeOffer(l, {
+               amount: parseAmount(v.amount),
+               tenor: Number(v.tenor),
+               rate: Number(String(v.rate).replace(',', '.')) / 100,
+               periodicity: v.periodicity
+          }));
+          if (ok) state.notice = 'Penawaran terkirim ke pemohon.';
+          state.view = 'queue';
+          return render();
+     }
+     if (form.matches('[data-fix]')) {
+          if (updateLoan(form.dataset.fix, (l) => requestFix(l, { note: v.note }))) {
+               state.notice = 'Permintaan perbaikan terkirim ke pemohon.';
+               state.view = 'queue';
+          }
           return render();
      }
      if (form.matches('[data-monitor]')) {
-          e.preventDefault();
-          const v = formValues(form);
           const extra = {};
           for (const [k, val] of Object.entries(v)) {
                if (k.startsWith('x_') && val !== '') extra[k.slice(2)] = Number.isFinite(Number(val)) ? Number(val) : val;
           }
-          const input = {
+          updateLoan(form.dataset.monitor, (l) => addMonitoring(l, {
                period: v.period,
                note: v.note,
                days_late: v.days_late,
@@ -790,31 +645,55 @@ function onSubmit(e) {
                outstanding: parseAmount(v.outstanding),
                remaining_months: v.remaining_months,
                extra
-          };
-          updateLoan(form.dataset.monitor, (l) => addMonitoring(l, input));
+          }));
           state.ui = {};
           return render();
      }
-     if (!form.matches('[data-form]')) return undefined;
-     e.preventDefault();
-     const errs = validateStep(state.step, state.borrower);
-     state.errors = errs;
-     if (errs.length) return render();
-     if (state.step < STEPS.length - 1) {
-          state.step += 1;
-          return render();
+     return undefined;
+}
+
+/* ---------------------------------------------------------- cadangan ---- */
+
+function exportBackup() {
+     const text = JSON.stringify({ app: 'mezs-sederhana', version: 2, exported_at: new Date().toISOString(), loans: state.loans }, null, 2);
+     if (FRAMED) {
+          // Unduhan diblokir di dalam frame: salin ke papan klip, atau tampilkan teks untuk disalin manual.
+          state.backupText = text;
+          if (!navigator.clipboard) return render();
+          navigator.clipboard.writeText(text).then(() => {
+               state.notice = 'Cadangan disalin. Tempel ke berkas teks dan simpan sebagai .json.';
+               state.backupText = null;
+               render();
+          }).catch(() => {
+               render();
+               root().querySelector('#backup-text')?.select();
+          });
+          return undefined;
      }
-     // Langkah terakhir: periksa semua langkah sebelum menghitung.
-     for (let i = 0; i < STEPS.length; i += 1) {
-          const stepErrs = validateStep(i, state.borrower);
-          if (stepErrs.length) {
-               state.step = i;
-               state.errors = stepErrs;
-               return render();
-          }
+     const link = document.createElement('a');
+     link.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+     link.download = `cadangan-pinjaman-${new Date().toISOString().slice(0, 10)}.json`;
+     link.click();
+     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+     return undefined;
+}
+
+/** Pulihkan cadangan: digabung per id (yang dari file menimpa yang sama). */
+async function importBackup(file) {
+     if (!file) return;
+     try {
+          const data = JSON.parse(await file.text());
+          const loans = Array.isArray(data?.loans) ? data.loans : null;
+          if (!loans || !loans.every((l) => l && typeof l.id === 'string' && l.borrower && l.status && l.history)) throw new Error('Berkas bukan cadangan daftar pinjaman versi ini.');
+          const byId = new Map(state.loans.map((l) => [l.id, l]));
+          for (const l of loans) byId.set(l.id, l);
+          state.loans = [...byId.values()];
+          save();
+          state.notice = `${loans.length} pinjaman dipulihkan dari cadangan.`;
+     } catch (err) {
+          state.notice = `Gagal memulihkan: ${err.message}`;
      }
-     runAnalysis();
-     return render();
+     render();
 }
 
 export function start() {
@@ -825,3 +704,4 @@ export function start() {
      document.addEventListener('submit', onSubmit);
      render();
 }
+

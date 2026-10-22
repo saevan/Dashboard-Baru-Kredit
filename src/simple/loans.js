@@ -1,6 +1,6 @@
 /**
  * simple/loans.js — Siklus pinjaman untuk dashboard sederhana:
- * pengajuan → disetujui (menunggu pencairan) → berjalan → pemantauan → keringanan.
+ * pengajuan → penawaran → diterima pemohon → pencairan → pemantauan → keringanan.
  *
  * Semua penilaian memakai mesin MEZS.id:
  *   - syarat pencairan & borrowing base  → core/disbursement.js
@@ -17,18 +17,52 @@ import { buildConditionsPrecedent, conditionsStatus, disbursementBlocker } from 
 import { evaluateMonitoring, EWS_PARAMS } from '../core/ews-monitor.js';
 import { buildPortfolio } from '../core/portfolio.js';
 import { proposeRestructuring, restructuringRecord } from '../core/restructuring.js';
+import { periodicInstallment } from '../core/debt-service.js';
 import { INDUSTRY_BENCHMARK } from '../data/industries.js';
 import { rupiah, STATUS } from './translate.js';
 
 /* ------------------------------------------------------------ status ---- */
 
+/**
+ * Status mengikuti alur MEZS.id (core/application.js), disederhanakan:
+ * diajukan → (perbaikan → diajukan) → ditawarkan → diterima → aktif → lunas,
+ * dengan cabang ditolak (oleh bank) dan ditolak_pemohon (penawaran ditolak).
+ */
 export const LOAN_STATUS = {
-     diajukan: { label: 'Menunggu keputusan', tone: 'kuning' },
-     disetujui: { label: 'Menunggu pencairan', tone: 'kuning' },
-     aktif: { label: 'Berjalan', tone: 'hijau' },
-     ditolak: { label: 'Ditolak', tone: 'merah' },
-     lunas: { label: 'Lunas', tone: 'hijau' }
+     diajukan: { label: 'Pengajuan baru', borrower: 'Pengajuan diterima, sedang diperiksa bank', tone: 'kuning' },
+     perbaikan: { label: 'Menunggu perbaikan pemohon', borrower: 'Perlu perbaikan dari Anda', tone: 'kuning' },
+     ditawarkan: { label: 'Penawaran dikirim', borrower: 'Ada penawaran untuk Anda', tone: 'kuning' },
+     diterima: { label: 'Siap dicairkan', borrower: 'Penawaran diterima, menunggu pencairan', tone: 'kuning' },
+     ditolak_pemohon: { label: 'Penawaran ditolak pemohon', borrower: 'Anda menolak penawaran', tone: 'merah' },
+     aktif: { label: 'Berjalan', borrower: 'Pinjaman berjalan', tone: 'hijau' },
+     ditolak: { label: 'Ditolak', borrower: 'Pengajuan belum dapat disetujui', tone: 'merah' },
+     lunas: { label: 'Lunas', borrower: 'Lunas', tone: 'hijau' }
 };
+
+/** Linimasa untuk pemohon (tanpa skor atau peringkat, seperti repo asal). */
+const STAGES = [
+     { key: 'kirim', label: 'Pengajuan dikirim', statuses: [] },
+     { key: 'periksa', label: 'Pemeriksaan bank', statuses: ['diajukan', 'perbaikan'] },
+     { key: 'tawar', label: 'Penawaran', statuses: ['ditawarkan'] },
+     { key: 'cair', label: 'Pencairan', statuses: ['diterima'] },
+     { key: 'jalan', label: 'Pinjaman berjalan', statuses: ['aktif', 'lunas'] }
+];
+
+export function borrowerTimeline(status) {
+     const closed = ['ditolak', 'ditolak_pemohon'].includes(status);
+     const idx = closed ? -1 : STAGES.findIndex((s) => s.statuses.includes(status));
+     return STAGES.map((s, i) => ({
+          label: s.label,
+          state: closed ? (i === 0 ? 'done' : 'todo') : i < idx || (status === 'lunas' && i === idx) ? 'done' : i === idx ? 'current' : 'todo'
+     }));
+}
+
+export const PERIODICITY_OPTIONS = [
+     { key: 'harian', label: 'Setiap hari', unit: 'hari' },
+     { key: 'mingguan', label: 'Setiap minggu', unit: 'minggu' },
+     { key: 'bulanan', label: 'Setiap bulan', unit: 'bulan' }
+];
+export const periodUnit = (p) => (PERIODICITY_OPTIONS.find((o) => o.key === p) || PERIODICITY_OPTIONS[2]).unit;
 
 export const EWS_PLAIN = {
      NORMAL: { tone: 'hijau', label: 'Sehat', action: 'Lanjutkan pemantauan rutin setiap bulan.' },
@@ -55,47 +89,136 @@ const fmt = (v, d = 2) => Number(v).toLocaleString('id-ID', { maximumFractionDig
 let seq = 0;
 const newId = (now) => `pinjaman_${now.getTime().toString(36)}_${(seq++).toString(36)}`;
 
-/** Borrower efektif (wawancara diterapkan) pada jumlah tertentu. */
-export function effectiveBorrower(record, amount = null) {
-     const b = applyInterview(record.borrower, record.interview || {}, emptyBorrower().bisnis_manajemen);
-     return amount ? { ...b, plafon_diajukan: amount } : b;
+function requireStatus(record, allowed, what) {
+     if (!allowed.includes(record.status)) throw new Error(`${what} tidak bisa dilakukan saat status "${LOAN_STATUS[record.status]?.label || record.status}".`);
 }
 
-/** Analisis mesin untuk satu pinjaman (pada jumlah disetujui bila ada). */
+/**
+ * Borrower efektif untuk mesin: wawancara petugas diterapkan, lalu syarat
+ * penawaran (jumlah, lama, bunga, periode cicilan) bila sudah ada.
+ */
+export function effectiveBorrower(record) {
+     const b = applyInterview(record.borrower, record.interview || {}, emptyBorrower().bisnis_manajemen);
+     const o = record.offer;
+     if (!o) return b;
+     return { ...b, plafon_diajukan: o.amount, tenor_bulan: o.tenor, bunga_tahunan: o.rate, periode_angsuran: o.periodicity };
+}
+
+/** Analisis mesin untuk satu pinjaman (pada syarat penawaran bila ada). */
 export function analyzeLoan(record) {
-     return analyze(effectiveBorrower(record, record.amount || null));
+     return analyze(effectiveBorrower(record));
+}
+
+/** Cicilan dari hasil mesin: per periode pilihan + setara bulanan. */
+export function installmentOf(result) {
+     const nl = result.debtService?.new_loan;
+     const monthly = nl?.schedule?.find((r) => r.payment > 0)?.payment ?? nl?.monthly_avg ?? null;
+     const periodic = result.debtService?.periodic;
+     const total = nl?.schedule?.reduce((a, r) => a + (r.payment || 0), 0) ?? null;
+     return {
+          periodicity: periodic?.periodicity || 'bulanan',
+          per_period: periodic?.per_period ?? monthly,
+          periods: periodic?.tenor_period ?? null,
+          monthly: monthly === null ? null : Math.round(monthly),
+          total: total === null ? null : Math.round(total),
+          annual_debt_service: Math.round(result.debtService?.total_annual || 0)
+     };
 }
 
 /* --------------------------------------------------------- siklus ------- */
 
-export function createLoan({ borrower, interview = {}, now = new Date() }) {
+/** Pemohon mengirim pengajuan (data usaha, angka dari berkas, dokumen, persetujuan). */
+export function createLoan({ borrower, documents = [], consent = false, interview = {}, now = new Date() }) {
+     if (!consent) throw new Error('Centang persetujuan pemeriksaan data sebelum mengirim.');
      return {
           id: newId(now),
           created_at: now.toISOString(),
+          submitted_at: now.toISOString(),
           borrower: structuredClone(borrower),
+          documents: structuredClone(documents),
+          consent: { accepted: true, at: now.toISOString() },
           interview: { ...interview },
           status: 'diajukan',
+          offer: null,
           amount: null,
           conditions: {},
           monitoring: [],
           restructuring: null,
-          terms: null
+          terms: null,
+          history: [{ at: now.toISOString(), by: 'pemohon', text: 'Pengajuan dikirim' }]
      };
 }
 
-export function approveLoan(record, { amount, now = new Date() }) {
-     if (!(num(amount) > 0)) throw new Error('Jumlah yang disetujui harus lebih dari 0.');
-     return { ...record, status: 'disetujui', amount: Math.round(num(amount)), approved_at: now.toISOString() };
+const logged = (record, by, text, now) => [...(record.history || []), { at: now.toISOString(), by, text }];
+
+/** Petugas: tandai dokumen terverifikasi / belum. */
+export function verifyDocument(record, key, verified, now = new Date()) {
+     const documents = (record.documents || []).map((d) => (d.key === key ? { ...d, verified: !!verified, verified_at: verified ? now.toISOString() : null } : d));
+     return { ...record, documents };
+}
+
+/** Petugas: isi hasil wawancara (skala 1–5). */
+export function setInterview(record, key, value) {
+     return { ...record, interview: { ...(record.interview || {}), [key]: value === null || value === '' ? null : Number(value) } };
+}
+
+/** Petugas: minta perbaikan dengan catatan untuk pemohon. */
+export function requestFix(record, { note = '', now = new Date() } = {}) {
+     requireStatus(record, ['diajukan'], 'Minta perbaikan');
+     const text = String(note).trim().slice(0, 500);
+     if (!text) throw new Error('Tulis apa yang perlu diperbaiki pemohon.');
+     return { ...record, status: 'perbaikan', fix_note: text, history: logged(record, 'petugas', `Minta perbaikan: ${text}`, now) };
+}
+
+/** Pemohon: kirim ulang setelah perbaikan. */
+export function resubmit(record, { borrower, documents, now = new Date() }) {
+     requireStatus(record, ['perbaikan'], 'Kirim ulang');
+     // Berkas yang diganti kehilangan status terverifikasi.
+     const old = new Map((record.documents || []).map((d) => [d.key, d]));
+     const docs = (documents || record.documents || []).map((d) => {
+          const prev = old.get(d.key);
+          return prev && prev.sha256 === d.sha256 ? { ...d, verified: prev.verified, verified_at: prev.verified_at } : { ...d, verified: false };
+     });
+     return { ...record, status: 'diajukan', borrower: structuredClone(borrower || record.borrower), documents: docs, fix_note: null,
+          history: logged(record, 'pemohon', 'Perbaikan dikirim', now) };
+}
+
+/** Petugas: kirim penawaran. Cicilan dihitung mesin pada syarat ini. */
+export function makeOffer(record, { amount, tenor, rate, periodicity, now = new Date() }) {
+     requireStatus(record, ['diajukan'], 'Kirim penawaran');
+     if (!(num(amount) > 0)) throw new Error('Jumlah penawaran harus lebih dari 0.');
+     if (!(num(tenor) >= 1 && num(tenor) <= 120)) throw new Error('Lama pinjaman 1–120 bulan.');
+     if (!(num(rate) >= 0 && num(rate) <= 0.6)) throw new Error('Bunga 0–60% per tahun.');
+     const p = PERIODICITY_OPTIONS.some((o) => o.key === periodicity) ? periodicity : 'bulanan';
+     const draft = { ...record, offer: { amount: Math.round(num(amount)), tenor: Math.round(num(tenor)), rate: num(rate), periodicity: p } };
+     const result = analyzeLoan(draft);
+     return {
+          ...draft,
+          status: 'ditawarkan',
+          offer: { ...draft.offer, ...installmentOf(result), decision: result.decision.decision, offered_at: now.toISOString() },
+          history: logged(record, 'petugas', `Penawaran ${rupiah(amount)} / ${tenor} bulan dikirim`, now)
+     };
+}
+
+export function acceptOffer(record, { now = new Date() } = {}) {
+     requireStatus(record, ['ditawarkan'], 'Terima penawaran');
+     return { ...record, status: 'diterima', amount: record.offer.amount, accepted_at: now.toISOString(), history: logged(record, 'pemohon', 'Penawaran diterima', now) };
+}
+
+export function declineOffer(record, { reason = '', now = new Date() } = {}) {
+     requireStatus(record, ['ditawarkan'], 'Tolak penawaran');
+     return { ...record, status: 'ditolak_pemohon', decline_reason: String(reason).slice(0, 300), history: logged(record, 'pemohon', 'Penawaran ditolak', now) };
 }
 
 export function rejectLoan(record, { reason = '', now = new Date() } = {}) {
-     return { ...record, status: 'ditolak', rejected_at: now.toISOString(), reject_reason: String(reason).slice(0, 300) };
+     requireStatus(record, ['diajukan', 'perbaikan'], 'Tolak pengajuan');
+     return { ...record, status: 'ditolak', rejected_at: now.toISOString(), reject_reason: String(reason).slice(0, 300), history: logged(record, 'petugas', 'Pengajuan ditolak', now) };
 }
 
 /** Syarat pencairan (mesin) + status centang, dalam bahasa awam. */
 export function conditionsView(record) {
      const result = analyzeLoan(record);
-     const borrower = effectiveBorrower(record, record.amount);
+     const borrower = effectiveBorrower(record);
      const list = buildConditionsPrecedent({ borrower, decision: result.decision.decision });
      const status = conditionsStatus(list, record.conditions || {});
      const blocker = disbursementBlocker({
@@ -125,14 +248,13 @@ export function toggleCondition(record, code, done, now = new Date()) {
 
 /**
  * Cairkan pinjaman. Ditolak bila syarat wajib belum lengkap (aturan mesin).
- * Cicilan & lama pinjaman dicatat dari analisis pada jumlah disetujui.
+ * Cicilan, lama, dan periode cicilan dicatat dari analisis pada syarat penawaran.
  */
 export function disburseLoan(record, { now = new Date() } = {}) {
+     requireStatus(record, ['diterima'], 'Pencairan');
      const view = conditionsView(record);
      if (!view.canDisburse) throw new Error(view.blocker);
-     const result = analyzeLoan(record);
-     const nl = result.debtService?.new_loan;
-     const monthly = nl?.schedule?.find((r) => r.payment > 0)?.payment ?? nl?.monthly_avg ?? null;
+     const inst = installmentOf(analyzeLoan(record));
      return {
           ...record,
           status: 'aktif',
@@ -142,12 +264,15 @@ export function disburseLoan(record, { now = new Date() } = {}) {
           drawn: view.firstDrawLimit ?? record.amount,
           outstanding: view.firstDrawLimit ?? record.amount,
           terms: {
-               tenor_bulan: result.borrower.tenor_bulan,
-               rate: result.borrower.bunga_tahunan,
-               monthly_installment: monthly === null ? null : Math.round(monthly),
-               annual_debt_service: Math.round(result.debtService?.total_annual || 0),
-               remaining_months: result.borrower.tenor_bulan
-          }
+               tenor_bulan: record.offer.tenor,
+               rate: record.offer.rate,
+               periodicity: inst.periodicity,
+               per_period: inst.per_period === null ? null : Math.round(inst.per_period),
+               monthly_installment: inst.monthly,
+               annual_debt_service: inst.annual_debt_service,
+               remaining_months: record.offer.tenor
+          },
+          history: logged(record, 'petugas', 'Dana dicairkan', now)
      };
 }
 
@@ -335,20 +460,23 @@ export function applyRestructuring(record, type, { note = '', now = new Date() }
                remaining_months: option.tenor_bulan,
                rate: option.rate,
                monthly_installment: option.monthly_installment,
+               per_period: Math.round(periodicInstallment({ monthlyPayment: option.monthly_installment, periodicity: record.terms.periodicity, tenorBulan: option.tenor_bulan }).per_period),
                annual_debt_service: option.annual_debt_service
-          }
+          },
+          history: logged(record, 'petugas', `Keringanan: ${option.label}`, now)
      };
 }
 
 /* ------------------------------------------------------- portofolio ----- */
 
+const FACILITY = { diajukan: 'pipeline', perbaikan: 'pipeline', ditawarkan: 'pipeline', diterima: 'pipeline', aktif: 'aktif', ditolak: 'ditolak', ditolak_pemohon: 'ditolak', lunas: 'lunas' };
+
 function portfolioRow(record) {
-     const facility = { pengajuan: 'pipeline', diajukan: 'pipeline', disetujui: 'pipeline', aktif: 'aktif', ditolak: 'ditolak', lunas: 'lunas' }[record.status];
      return {
           borrower: {
-               ...effectiveBorrower(record, record.amount),
+               ...effectiveBorrower(record),
                id: record.id,
-               facility_status: facility,
+               facility_status: FACILITY[record.status] || 'pipeline',
                outstanding: record.outstanding ?? record.amount,
                restructuring: record.restructuring || undefined
           },
@@ -357,26 +485,32 @@ function portfolioRow(record) {
      };
 }
 
-/** Kartu ringkas satu pinjaman untuk daftar. */
+/** Kartu ringkas satu pinjaman untuk daftar petugas. */
 export function loanCard(record) {
      const status = LOAN_STATUS[record.status] || LOAN_STATUS.diajukan;
      const mon = monitoringView(record.monitoring?.at(-1));
-     const result = record.status === 'diajukan' ? analyzeLoan(record) : null;
      let tone = status.tone;
      let headline = status.label;
      let sentence = '';
      if (record.status === 'aktif') {
           tone = mon ? mon.tone : 'hijau';
           headline = mon ? mon.label : 'Belum dipantau';
-          sentence = mon ? mon.sentence : 'Catat pemantauan pertama setelah cicilan bulan pertama.';
-     } else if (result) {
+          sentence = mon ? mon.sentence : 'Catat pemantauan pertama setelah cicilan pertama.';
+     } else if (record.status === 'diajukan') {
+          const result = analyzeLoan(record);
           const s = STATUS[result.decision.decision];
           tone = s.tone;
           sentence = `Hasil analisis: ${s.label.toLowerCase()} (${result.risk.pefindo.grade}). Saran ${rupiah(result.nominal.recommended_nominal)}.`;
-     } else if (record.status === 'disetujui') {
-          sentence = `Disetujui ${rupiah(record.amount)}; lengkapi syarat pencairan.`;
+     } else if (record.status === 'perbaikan') {
+          sentence = `Diminta: ${record.fix_note}`;
+     } else if (record.status === 'ditawarkan') {
+          sentence = `Ditawarkan ${rupiah(record.offer.amount)} / ${record.offer.tenor} bulan; menunggu jawaban pemohon.`;
+     } else if (record.status === 'diterima') {
+          sentence = `Diterima pemohon (${rupiah(record.amount)}); lengkapi syarat pencairan.`;
      } else if (record.status === 'ditolak') {
           sentence = record.reject_reason || 'Pengajuan tidak dilanjutkan.';
+     } else if (record.status === 'ditolak_pemohon') {
+          sentence = record.decline_reason || 'Pemohon tidak melanjutkan.';
      }
      return {
           id: record.id,
@@ -386,7 +520,7 @@ export function loanCard(record) {
           tone,
           headline,
           sentence,
-          amount: record.amount ?? record.borrower.plafon_diajukan,
+          amount: record.amount ?? record.offer?.amount ?? record.borrower.plafon_diajukan,
           outstanding: record.status === 'aktif' ? record.outstanding : null,
           monthly: record.terms?.monthly_installment ?? null,
           restructured: !!record.restructuring,
@@ -402,7 +536,7 @@ export function portfolioView(records = []) {
      const aktif = cards.filter((c) => c.status === 'aktif');
      const lamps = { hijau: 0, kuning: 0, merah: 0 };
      for (const c of aktif) lamps[c.tone] += 1;
-     const pending = cards.filter((c) => c.status === 'diajukan' || c.status === 'disetujui').length;
+     const pending = cards.filter((c) => ['diajukan', 'perbaikan', 'ditawarkan', 'diterima'].includes(c.status)).length;
      const nplPct = p.npl.gross_ratio * 100;
      return {
           cards,
