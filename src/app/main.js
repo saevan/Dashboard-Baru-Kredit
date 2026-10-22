@@ -33,7 +33,7 @@ const NAV = {
 
 /** Rute → penangan. Penangan mengisi `main` dan mengembalikan {title, crumbs}. */
 const ROUTES = {
-     public: { '': pub.welcome, masuk: pub.welcome, daftar: pub.register },
+     public: { '': pub.landing, masuk: pub.loginPage, daftar: pub.register },
      borrower: {
           beranda: borrower.home,
           ajukan: borrower.apply,
@@ -69,6 +69,8 @@ const roleOf = () => {
 /* ------------------------------------------------------------ shell ----- */
 
 function shell(role) {
+     /* Halaman utama, masuk, dan daftar punya tata letak sendiri (tanpa menu aplikasi). */
+     if (role === 'public') return '<a class="skip" href="#main">Lewati ke isi</a><main id="main" class="bare" tabindex="-1" data-main></main><div class="toasts" data-toasts aria-live="polite"></div>';
      const s = session();
      const nav = NAV[role] || [];
      const roleLabel = role === 'lender' ? 'Petugas' : role === 'borrower' ? 'Pemohon' : '';
@@ -102,7 +104,8 @@ const root = () => document.getElementById('app');
 function mountShell(role) {
      root().innerHTML = shell(role);
      mountedRole = role;
-     root().querySelector('[data-theme-toggle]').onclick = () => {
+     const themeBtn = root().querySelector('[data-theme-toggle]');
+     if (themeBtn) themeBtn.onclick = () => {
           const cur = prefs().theme;
           const dark = cur === 'dark' || (cur === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
           const next = dark ? 'light' : 'dark';
@@ -121,6 +124,7 @@ function mountShell(role) {
 
 function setCrumbs(crumbs) {
      const el = root().querySelector('[data-crumbs]');
+     if (!el) return;
      if (!crumbs || crumbs.length < 2) { el.hidden = true; el.innerHTML = ''; return; }
      el.hidden = false;
      el.innerHTML = `<ol>${crumbs.map((c, i) => (i === crumbs.length - 1 ? `<li><span aria-current="page">${esc(c.label)}</span></li>` : `<li><a href="${esc(c.href)}">${esc(c.label)}</a></li>`)).join('')}</ol>`;
@@ -200,6 +204,7 @@ export function render() {
           main.innerHTML = `<div class="callout bad"><strong>Halaman gagal dimuat.</strong> ${esc(err.message)} <a href="#/beranda">Kembali ke Beranda</a></div>`;
      }
      document.title = `${meta.title ? `${meta.title} · ` : ''}MEZS.id`;
+     document.body.classList.toggle('is-public', role === 'public');
      setCrumbs(meta.crumbs);
      markNav(page);
 }

@@ -34,6 +34,10 @@ Kelengkapan dashboard lama dipertahankan; yang dipangkas adalah **langkah operas
 (`productive-loan-analyzer`) — dashboard lama tidak diubah. Keputusan desain mengikuti 13 prinsip UX
 (Next Digital) dan dicatat di [`docs/REDESIGN_UX.md`](docs/REDESIGN_UX.md).
 
+**Halaman utama & masuk** — seperti dashboard lama: halaman utama bercerita "Hari ini → Dengan MEZS.id" (cara kerja,
+simulasi cicilan, persyaratan dokumen, rumus terbuka, FAQ), halaman masuk dengan pilihan *Pemohon kredit / Tim lender*
+dan akun pengujian, serta halaman daftar akun pemohon.
+
 **Pemohon** — menu: Beranda · Ajukan · Pengajuan saya
 1. *Ajukan* (4 langkah, tersimpan otomatis): usaha & pinjaman (cicil **harian / mingguan / bulanan**) →
    **kirim laporan keuangan apa adanya** (PDF/Excel/CSV/foto, angka dibaca otomatis, OCR untuk foto) →
