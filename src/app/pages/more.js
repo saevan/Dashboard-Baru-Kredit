@@ -75,7 +75,7 @@ let manualDraft = null;
 export function manual(main, params) {
      manualDraft ??= emptyBorrower();
      const b = manualDraft;
-     const scoreSel = (key) => `<select id="q-${key}" name="bm.${key}">${AUDIT_SCORE_OPTIONS.map((o) => `<option value="${o.value}"${Math.abs(Number(b.bisnis_manajemen[key]) - o.value) < 0.13 ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
+     const scoreSel = (key) => `<input id="q-${key}" name="bm.${key}" type="number" min="0" max="1" step="0.01" inputmode="decimal" placeholder="0–1" value="${esc(b.bisnis_manajemen[key] ?? '')}" style="max-width:140px">`;
      main.innerHTML = `<div class="page-head"><div><h1>Analisis manual</h1><p>Hasil disimpan sebagai nasabah dan bisa dihitung ulang kapan saja.</p></div><button class="btn btn-quiet" data-example>Isi contoh Bu Sari</button></div>
      <form data-manual novalidate class="stack">
           ${card('Usaha & pinjaman', `<div class="form-grid">
@@ -94,7 +94,7 @@ export function manual(main, params) {
                <div class="form-grid">${FINANCE_FIELDS.map((f) => `<div class="field"><label for="mk-${f.key}">${esc(f.label)}</label><input id="mk-${f.key}" name="k.${f.key}" type="text" inputmode="decimal" value="${b.keuangan[f.key] === null || b.keuangan[f.key] === undefined ? '' : esc(Number(b.keuangan[f.key]).toLocaleString('id-ID'))}"></div>`).join('')}
                ${field({ id: 'mk-arrears', label: 'Tunggakan berjalan (hari)', control: `<input id="mk-arrears" name="arrears_days" type="number" min="0" value="${esc(b.keuangan.arrears_days || 0)}">` })}
                ${field({ id: 'mk-ocfneg', label: 'Arus kas negatif berturut-turut (periode)', control: `<input id="mk-ocfneg" name="ocf_negatif_periode" type="number" min="0" value="${esc(b.keuangan.ocf_negatif_periode || 0)}">` })}</div>`)}
-          ${card('Penilaian kualitatif', interviewGroups().map((g) => `<h3>${esc(g.label)}</h3><div class="form-grid">${g.items.map((q) => field({ id: `q-${q.key}`, label: q.label, hint: q.help, control: scoreSel(q.key) })).join('')}</div>`).join('') + `<div class="form-grid">
+          ${card('Penilaian kualitatif (5C)', `<p class="small muted">Skor 0 sampai 1. ${SCORE_SCALE_GUIDE.map((g) => `${esc(g.range)} ${esc(g.label.toLowerCase())}`).join(' · ')}.</p>` + interviewGroups().map((g) => `<h3>${esc(g.label)}</h3><div class="form-grid">${g.items.map((q) => field({ id: `q-${q.key}`, label: q.label, hint: q.help, control: scoreSel(q.key) })).join('')}</div>`).join('') + `<div class="form-grid">
                ${field({ id: 'm-track', label: 'Lama usaha berjalan (tahun)', control: `<input id="m-track" name="bm.track_record_tahun" type="number" min="0" value="${esc(b.bisnis_manajemen.track_record_tahun ?? '')}">` })}
                ${field({ id: 'm-runway', label: 'Kas cukup untuk (bulan)', control: `<input id="m-runway" name="bm.cash_runway_bulan" type="number" min="0" value="${esc(b.bisnis_manajemen.cash_runway_bulan ?? '')}">` })}</div>`)}
           ${card('Jaminan & utang lain', `<div class="form-grid">
@@ -121,6 +121,8 @@ export function manual(main, params) {
      form.addEventListener('submit', async (e) => {
           e.preventDefault();
           collect();
+          const badScore = interviewGroups().flatMap((g) => g.items).filter((q) => b.bisnis_manajemen[q.key] !== null && (b.bisnis_manajemen[q.key] < 0 || b.bisnis_manajemen[q.key] > 1));
+          if (badScore.length) return toast(`Skor 5C harus 0 sampai 1: ${badScore.map((q) => q.label).join(', ')}.`, 'warn', 6000);
           const missing = [!b.nama && 'nama usaha', !b.sektor && 'bidang usaha', !(b.plafon_diajukan > 0) && 'jumlah pinjaman', ...FINANCE_FIELDS.filter((f) => f.min && b.keuangan[f.key] === null).map((f) => f.label.toLowerCase())].filter(Boolean);
           if (missing.length) return toast(`Lengkapi: ${missing.join(', ')}.`, 'warn', 6000);
           const out = await busy(e.submitter, () => P.saveManualAnalysis({ ...b }), { ok: 'Analisis selesai dan disimpan.', fail: 'Gagal menghitung' });

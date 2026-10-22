@@ -51,7 +51,7 @@ export function demoBuSari() {
      return b;
 }
 
-const DEMO_DOC_KEYS = ['identitas', 'legalitas', 'rekening_koran', 'laporan_keuangan', 'agunan'];
+const DEMO_DOC_KEYS = ['identitas', 'legalitas', 'rekening_koran', 'surat_keterangan_bank', 'laporan_keuangan', 'agunan'];
 
 /** Kirim pengajuan contoh Bu Sari sebagai pemohon demo, lalu kembalikan sesi semula. */
 export function seedBuSariApplication() {

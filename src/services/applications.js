@@ -423,7 +423,15 @@ export function setDocumentVerified(id, docId, verified) {
      const rec = getApplication(id);
      if (!rec) throw new Error('Pengajuan tidak ditemukan.');
      if (!EDITABLE.includes(rec.status)) throw new Error('Verifikasi dikunci pada tahap ini.');
-     const documents = (rec.documents || []).map((doc) => (doc.id === docId ? { ...doc, verified: verified ? 1 : 0, verified_at: verified ? nowIso() : null } : doc));
+     const target = (rec.documents || []).find((doc) => doc.id === docId);
+     const isVerified = (doc) => doc.verified === 1 || doc.verified === true;
+     // Rekening koran baru sah setelah dicocokkan dengan surat keterangan bank yang terverifikasi.
+     if (verified && target?.source_key === 'rekening_koran' && !(rec.documents || []).some((doc) => doc.source_key === 'surat_keterangan_bank' && isVerified(doc))) {
+          throw new Error('Verifikasi surat keterangan bank lebih dulu: rekening koran divalidasi dengan surat tersebut. Bila belum dilampirkan, minta perbaikan ke pemohon.');
+     }
+     // Membatalkan surat keterangan bank ikut membatalkan rekening koran yang divalidasinya.
+     const unlinkStatement = !verified && target?.source_key === 'surat_keterangan_bank';
+     const documents = (rec.documents || []).map((doc) => (doc.id === docId || (unlinkStatement && doc.source_key === 'rekening_koran') ? { ...doc, verified: verified ? 1 : 0, verified_at: verified ? nowIso() : null } : doc));
      upsertApplication({ ...rec, documents });
 }
 

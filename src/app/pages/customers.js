@@ -136,12 +136,14 @@ function facility(c) {
           ${f.status === 'aktif' ? ladder : ''}
           ${f.contagion_from ? `<p class="callout warn small" style="margin-top:10px">Kolektibilitas disesuaikan karena fasilitas lain milik debitur yang sama (${esc(f.contagion_from.nama)}) — aturan satu debitur satu kolektibilitas.</p>` : ''}
           ${pv ? `<details class="more"><summary>Cadangan kerugian (PSAK 71 / POJK 40)</summary>${rows([['Tahap PSAK 71', `Tahap ${pv.ecl.stage} · ECL ${esc(pv.ecl.horizon)}`], ['CKPN', pv.ecl.ecl === null ? 'Perlu analisis PD/LGD' : rp(pv.ecl.ecl)], [`PPKA minimum (${Math.round(pv.ppka.rate * 100)}%)`, rp(pv.ppka.amount)], pv.shortfall ? ['Selisih dibentuk dari modal', rp(pv.shortfall)] : null])}${pv.ecl.triggers.length ? `<p class="small">${pv.ecl.triggers.map(esc).join(' · ')}</p>` : ''}</details>` : ''}`);
+     const bb = c.conditions.items.find((it) => it.code === 'BORROWING_BASE' && it.mandatory)?.detail || null;
+     const maxNow = bb ? Math.min(f.plafon, bb.availability) : f.plafon;
      const actions = f.status === 'pipeline'
-          ? card('Pencairan', `<form data-fac-form class="actions" style="align-items:flex-end" novalidate>
-               <div class="field" style="margin:0;flex:1 1 220px"><label for="fac-amt">Jumlah dicairkan (Rp)</label><input id="fac-amt" name="outstanding" type="number" min="1" step="1000000" value="${esc(f.plafon)}"></div>
+          ? card('Pencairan', `${bb ? borrowingBaseHtml(bb, f.plafon) : ''}<form data-fac-form class="actions" style="align-items:flex-end" novalidate>
+               <div class="field" style="margin:0;flex:1 1 220px"><label for="fac-amt">Jumlah dicairkan (Rp)</label>${bb ? `<p class="hint">Maksimal sekarang ${rp(maxNow)}</p>` : ''}<input id="fac-amt" name="outstanding" type="number" min="1" max="${maxNow}" step="1000000" value="${esc(maxNow)}"></div>
                <button class="btn btn-primary" data-fac="disburse" ${c.conditions.ready ? '' : 'disabled aria-describedby="cp-hint"'}>Catat pencairan</button>
                <button class="btn btn-danger" type="button" data-fac="ditolak">Batalkan fasilitas</button></form>
-               ${c.conditions.ready ? '<p class="small muted">Pencairan pertama dibatasi borrowing base (aset lancar yang dijaminkan).</p>' : `<p class="small muted" id="cp-hint">Terkunci sampai ${c.conditions.mandatory_pending.length} syarat wajib di bawah terpenuhi.</p>`}`)
+               ${c.conditions.ready ? '' : `<p class="small muted" id="cp-hint">Terkunci sampai ${c.conditions.mandatory_pending.length} syarat wajib di bawah terpenuhi.</p>`}`)
           : f.status === 'aktif'
                ? card('Perbarui pinjaman', `<form data-fac-form class="actions" style="align-items:flex-end" novalidate>
                     <div class="field" style="margin:0;flex:1 1 220px"><label for="fac-amt">Sisa pinjaman sekarang (Rp)</label><input id="fac-amt" name="outstanding" type="number" min="0" step="1000000" value="${esc(f.outstanding)}"></div>
@@ -153,6 +155,25 @@ function facility(c) {
      return `<div class="stack">${status}${actions}${conditions}
           ${f.status === 'aktif' ? monitorCard(c) + reliefCard(c) + covenantCard(c) : ''}
           ${c.monitoring.length ? card('Riwayat pemantauan', historyHtml(c.monitoring)) : ''}</div>`;
+}
+
+/**
+ * Borrowing base (core/disbursement.js): batas dana kredit modal kerja yang boleh
+ * ditarik, dihitung dari aset lancar yang membiayainya — bukan dari plafon.
+ */
+function borrowingBaseHtml(bb, plafon) {
+     return `<div class="callout${bb.below_plafon ? ' warn' : ''}" style="margin-bottom:12px">
+          <strong>Batas tarik (borrowing base): ${rp(bb.availability)}</strong>
+          <p class="small" style="margin:4px 0 0">Kredit modal kerja hanya boleh ditarik sebesar aset lancar yang dibiayainya — tagihan ke pelanggan (piutang) dan stok barang — setelah dipotong porsi aman. Ini mencegah dana dipakai melebihi kebutuhan modal kerja yang nyata.</p>
+          ${rows([
+               ['Piutang', rp(bb.piutang)],
+               bb.piutang_ineligible ? ['Dikeluarkan (pihak terkait / lewat 90 hari)', `− ${rp(bb.piutang_ineligible)}`] : null,
+               [`Piutang layak × ${Math.round(bb.ar_advance_rate * 100)}%`, rp(bb.piutang_eligible * bb.ar_advance_rate)],
+               [`Stok barang ${rp(bb.persediaan)} × ${Math.round(bb.inventory_advance_rate * 100)}%`, rp(bb.persediaan * bb.inventory_advance_rate)],
+               ['Batas tarik', `<strong>${rp(bb.availability)}</strong>`]
+          ])}
+          ${bb.below_plafon ? `<p class="small" style="margin:6px 0 0">Plafon ${rp(plafon)} lebih besar dari batas tarik. Sisanya bisa dicairkan setelah piutang/stok bertambah dan sertifikat borrowing base diperbarui (perbarui laporan umur piutang & stok).</p>` : ''}
+     </div>`;
 }
 
 function historyHtml(list) {

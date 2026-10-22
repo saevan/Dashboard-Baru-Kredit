@@ -11,7 +11,8 @@ import * as P from '../../services/portfolio.js';
 import { session } from '../../services/core.js';
 import { seedBuSariApplication, importDartoDemo, DARTO_DEMO_URL } from '../../services/demo.js';
 import { APPLICATION_STATUS_LABEL } from '../../core/intake-config.js';
-import { FINANCIAL_CHECKLIST, COLLATERAL_CHECKLIST, AUDIT_SCORE_OPTIONS, interviewGroups, auditProgress, applyAuditToBorrower, score01 } from '../../core/audit.js';
+import { SCORE_SCALE_GUIDE } from '../../core/config.js';
+import { FINANCIAL_CHECKLIST, COLLATERAL_CHECKLIST, interviewGroups, auditProgress, applyAuditToBorrower, score01 } from '../../core/audit.js';
 import { automaticAudit } from '../../core/audit-automation.js';
 import { buildOfferOptions, assessOffer, offerEligibility } from '../../core/offer.js';
 import { priorityReasons } from '../../core/dashboard-insights.js';
@@ -206,9 +207,9 @@ function stepDocs(d, { locked }) {
      const auto = automaticAudit(b, d.documents);
      return card('Periksa dokumen', `${bulk('docs', locked || !d.documents.length, 'Tandai semua terverifikasi')}<p class="muted small">Buka setiap berkas, cocokkan dengan aslinya, lalu tandai terverifikasi. Dokumen terverifikasi menaikkan keyakinan data.</p>
           ${d.documents.length ? `<ul class="list">${d.documents.map((doc) => `<li><div class="main"><strong>${esc(A.VERIFICATION_SOURCES.find((s) => s.key === doc.source_key)?.label || doc.source_key)}</strong>
-               <div class="meta">${esc(doc.filename)}${doc.example ? ' · contoh tanpa isi berkas' : ''}${doc.extraction?.message ? ` · ${esc(doc.extraction.message)}` : ''}</div></div>
+               <div class="meta">${doc.source_key === 'rekening_koran' ? `<strong>Cocokkan dengan surat keterangan bank${d.documents.some((x) => x.source_key === 'surat_keterangan_bank') ? '' : ' — belum dilampirkan pemohon'}.</strong> ` : ''}${esc(doc.filename)}${doc.example ? ' · contoh tanpa isi berkas' : ''}${doc.extraction?.message ? ` · ${esc(doc.extraction.message)}` : ''}</div></div>
                ${doc.has_file ? `<button class="btn btn-sm btn-quiet" data-open="${esc(doc.id)}">Buka</button>` : ''}
-               <label class="check" style="border:0;padding:0"><input type="checkbox" data-verify="${esc(doc.id)}" ${doc.verified ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>Terverifikasi</span></label></li>`).join('')}</ul>` : empty('Belum ada dokumen', 'Minta pemohon melampirkan dokumen lewat tombol "Minta perbaikan".')}
+               <label class="check" style="border:0;padding:0"><input type="checkbox" data-verify="${esc(doc.id)}" data-src="${esc(doc.source_key)}" ${doc.verified ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>Terverifikasi</span></label></li>`).join('')}</ul>` : empty('Belum ada dokumen', 'Minta pemohon melampirkan dokumen lewat tombol "Minta perbaikan".')}
           ${auto.missing_files.length ? `<p class="callout warn small">Berkas wajib belum ada: ${auto.missing_files.map(esc).join(', ')}.</p>` : ''}`)
           + card('Data dari pemohon', rows([['Jumlah diajukan', rp(b.plafon_diajukan)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Cicil setiap', esc(b.periode_angsuran || 'Sesuai saran')], ['Keperluan', esc(b.tujuan_kredit || '—')], ['NPWP / NIB', `${esc(b.npwp || '—')} / ${esc(b.nib || '—')}`], ['Persetujuan pemeriksaan', d.consent?.accepted ? `Ya, ${esc(date(d.consent.accepted_at))}` : 'Belum']])
                + `<details class="more"><summary>Angka laporan keuangan</summary>${rows(FINANCE_FIELDS.map((f) => [f.label, rp(b.keuangan?.[f.key])]))}</details>`);
@@ -249,17 +250,25 @@ function stepCollateral(d, { locked }) {
           <div style="margin-top:12px">${bulk('collateral', locked || a.ketersediaan !== 'ada', 'Centang semua yang sudah diperiksa')}${checklist('collateral', COLLATERAL_CHECKLIST, d, locked)}</div>${noteField('collateral', d, locked)}`);
 }
 
-/* ---- 4 Wawancara ---- */
+/* ---- 4 Wawancara (5C) — skor 0–1 seperti dashboard lama ---- */
+/** Kata skala untuk skor 0–1 (SCORE_SCALE_GUIDE dashboard lama). */
+export function scaleWord(v) {
+     const n = score01(v);
+     if (n === null) return '';
+     const g = n <= 0.2 ? 0 : n <= 0.4 ? 1 : n <= 0.6 ? 2 : n <= 0.8 ? 3 : 4;
+     return `${SCORE_SCALE_GUIDE[g].label} — ${SCORE_SCALE_GUIDE[g].note}`;
+}
+
 function stepInterview(d, { locked }) {
      const scores = d.audit.interview.scores || {};
-     return interviewGroups().map((g) => card(`${g.label}`, g.items.map((q) => {
-          const cur = score01(scores[q.key]);
-          return `<fieldset class="field" style="border:0;padding:0;margin:0 0 16px"><legend style="font-weight:600;color:var(--strong)">${esc(q.label)}</legend>
-               <p class="hint">${esc(q.help || '')}</p>
-               <div class="scale">${AUDIT_SCORE_OPTIONS.map((o) => `<label><input type="radio" name="iv-${esc(q.key)}" data-score="${esc(q.key)}" value="${o.value}" ${cur === o.value ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>${esc(o.label.split(' — ')[0])}</span></label>`).join('')}
-               ${cur !== null && !AUDIT_SCORE_OPTIONS.some((o) => o.value === cur) ? `<span class="pill plain">Nilai tersimpan ${cur}</span>` : ''}</div></fieldset>`;
-     }).join(''))).join('')
-          + (locked ? '' : '<p class="small muted">Tip: pilih nilai lalu tekan Tab untuk pindah ke pertanyaan berikutnya; panah kiri/kanan mengganti nilai.</p>')
+     const fmt = (v) => (v === null ? '' : String(v).replace('.', ','));
+     return card('Penilaian 5C (wawancara)', `<p class="small muted">Isi skor <strong>0 sampai 1</strong> untuk setiap parameter (boleh pakai koma, mis. 0,65). Skala: ${SCORE_SCALE_GUIDE.map((g) => `${esc(g.range)} ${esc(g.label.toLowerCase())}`).join(' · ')}.</p>`)
+          + interviewGroups().map((g) => card(`${g.label}`, `<div class="form-grid">${g.items.map((q) => {
+               const cur = score01(scores[q.key]);
+               return `<div class="field"><label for="iv-${esc(q.key)}">${esc(q.label)}</label><p class="hint">${esc(q.help || '')}</p>
+                    <input id="iv-${esc(q.key)}" type="text" inputmode="decimal" autocomplete="off" placeholder="0–1" data-score="${esc(q.key)}" value="${esc(fmt(cur))}" ${locked ? 'disabled' : ''} style="max-width:140px" aria-describedby="iv-${esc(q.key)}-w">
+                    <p class="hint" id="iv-${esc(q.key)}-w" data-word>${esc(scaleWord(cur))}</p></div>`;
+          }).join('')}</div>`)).join('')
           + card('', noteField('interview', d, locked));
 }
 
@@ -342,7 +351,11 @@ function bindReview(main, d, ctx) {
      const id = d.id;
      const refresh = () => ctx.refresh();
      main.querySelectorAll('[data-verify]').forEach((el) => el.addEventListener('change', () => {
-          try { A.setDocumentVerified(id, el.dataset.verify, el.checked); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
+          try {
+               A.setDocumentVerified(id, el.dataset.verify, el.checked);
+               for (const doc of A.reviewDetail(id).documents) { const box = main.querySelector(`[data-verify="${CSS.escape(doc.id)}"]`); if (box) box.checked = doc.verified; }
+               paintProgress(main, id);
+          } catch (err) { toast(err.message, 'bad', 7000); el.checked = !el.checked; }
      }));
      main.querySelectorAll('[data-audit]').forEach((el) => el.addEventListener('change', () => {
           try { A.setAuditCheck(id, el.dataset.audit, el.dataset.key, el.checked); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); el.checked = !el.checked; }
@@ -350,12 +363,21 @@ function bindReview(main, d, ctx) {
      main.querySelectorAll('[data-audit-note]').forEach((el) => el.addEventListener('change', () => {
           try { A.setAuditNote(id, el.dataset.auditNote, el.value); toast('Catatan tersimpan.'); } catch (err) { toast(err.message, 'bad'); }
      }));
-     main.querySelectorAll('[data-score]').forEach((el) => el.addEventListener('change', () => {
-          try { A.setAuditScore(id, el.dataset.score, el.value); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); }
-     }));
+     main.querySelectorAll('[data-score]').forEach((el) => {
+          const word = el.parentElement.querySelector('[data-word]');
+          el.addEventListener('input', () => {
+               const ok = el.value.trim() === '' || score01(el.value) !== null;
+               el.setAttribute('aria-invalid', String(!ok));
+               word.textContent = ok ? scaleWord(el.value) : 'Isi angka 0 sampai 1, mis. 0,65';
+          });
+          el.addEventListener('change', () => {
+               try { A.setAuditScore(id, el.dataset.score, el.value.trim()); paintProgress(main, id); } catch (err) { toast(err.message, 'bad'); el.focus(); }
+          });
+     });
      main.querySelectorAll('[data-bulk]').forEach((btn) => btn.addEventListener('click', () => {
           const sec = btn.dataset.bulk;
-          const boxes = [...main.querySelectorAll(sec === 'docs' ? '[data-verify]' : `[data-audit="${sec}"]`)].filter((el) => !el.disabled && !el.checked);
+          const boxes = [...main.querySelectorAll(sec === 'docs' ? '[data-verify]' : `[data-audit="${sec}"]`)].filter((el) => !el.disabled && !el.checked)
+               .sort((a, b) => (b.dataset.src === 'surat_keterangan_bank') - (a.dataset.src === 'surat_keterangan_bank'));
           try {
                for (const el of boxes) {
                     if (sec === 'docs') A.setDocumentVerified(id, el.dataset.verify, true);

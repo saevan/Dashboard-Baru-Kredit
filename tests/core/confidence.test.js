@@ -36,6 +36,7 @@ test('data lengkap dan banyak sumber terverifikasi menghasilkan level HIGH', () 
                'identitas',
                'legalitas',
                'rekening_koran',
+               'surat_keterangan_bank',
                'laporan_keuangan',
                'faktur_pajak',
                'laporan_audited',
@@ -53,12 +54,21 @@ test('data lengkap dan banyak sumber terverifikasi menghasilkan level HIGH', () 
 
 test('sumber wajib saja menghasilkan level MEDIUM', () => {
      const r = computeConfidence({
-          verified: ['identitas', 'legalitas', 'rekening_koran', 'laporan_keuangan'],
+          verified: ['identitas', 'legalitas', 'rekening_koran', 'surat_keterangan_bank', 'laporan_keuangan'],
           financials: fullFinancials()
      });
      assert.equal(r.level, CONFIDENCE_LEVEL.MEDIUM);
-     assert.equal(r.verified_count, 4);
+     assert.equal(r.verified_count, 5);
      assert.equal(r.meets_mandatory, true);
+});
+
+test('rekening koran tanpa surat keterangan bank belum memenuhi sumber wajib', () => {
+     const r = computeConfidence({
+          verified: ['identitas', 'legalitas', 'rekening_koran', 'laporan_keuangan', 'faktur_pajak', 'slik_ojk'],
+          financials: fullFinancials()
+     });
+     assert.equal(r.level, CONFIDENCE_LEVEL.LOW);
+     assert.deepEqual(r.mandatory_missing, ['surat_keterangan_bank']);
 });
 
 test('sumber wajib yang belum terverifikasi menekan level ke LOW', () => {
@@ -86,6 +96,7 @@ test('integritas laporan gagal mencegah level HIGH', () => {
                'identitas',
                'legalitas',
                'rekening_koran',
+               'surat_keterangan_bank',
                'laporan_keuangan',
                'faktur_pajak',
                'laporan_audited',

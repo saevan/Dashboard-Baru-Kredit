@@ -64,6 +64,7 @@ export const DOCUMENT_HINT = {
      identitas: 'Foto KTP pemilik dan NPWP',
      legalitas: 'Akta pendirian / NIB',
      rekening_koran: 'Mutasi rekening 6–12 bulan terakhir',
+     surat_keterangan_bank: 'Surat dari bank yang menerangkan rekening & saldo — untuk memvalidasi rekening koran',
      laporan_keuangan: 'Neraca & laba rugi — angkanya dibaca otomatis',
      faktur_pajak: 'Faktur pajak atau SPT tahunan',
      laporan_audited: 'Bila ada, laporan yang sudah diaudit',

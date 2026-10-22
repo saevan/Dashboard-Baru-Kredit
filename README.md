@@ -96,6 +96,11 @@ docs/REDESIGN_UX.md         cetak biru desain ulang
 
 ## Menyelaraskan mesin
 
+**Perbedaan sengaja dari repo asal** (pertahankan saat menyalin ulang):
+- `src/core/intake-config.js` — sumber verifikasi wajib baru **Surat keterangan bank** (validasi rekening koran, bobot 1).
+  Rekening koran baru bisa ditandai terverifikasi setelah surat ini terverifikasi (`src/services/applications.js`).
+  Tes terkait: `tests/core/confidence.test.js`, `tests/services.test.js`.
+
 `src/core/` adalah salinan dari `productive-loan-analyzer/src/core`. Bila mesin di repo asal berubah,
 salin ulang folder itu beserta `tests/core/`, lalu jalankan `npm test`. Tes `tests/services.test.js`
 memastikan angka Bu Sari tetap sama dengan kompendium.

@@ -72,6 +72,8 @@ export const VERIFICATION_SOURCES = [
      { key: 'identitas', label: 'Identitas pemilik (KTP/NPWP)', weight: 1, mandatory: true },
      { key: 'legalitas', label: 'Legalitas perusahaan (akta/NIB)', weight: 1, mandatory: true },
      { key: 'rekening_koran', label: 'Rekening koran 6–12 bulan', weight: 2, mandatory: true },
+     // MEZS.id (Dashboard-Baru-Kredit): surat keterangan bank memvalidasi keaslian rekening koran.
+     { key: 'surat_keterangan_bank', label: 'Surat keterangan bank (validasi rekening koran)', weight: 1, mandatory: true },
      { key: 'laporan_keuangan', label: 'Laporan keuangan', weight: 2, mandatory: true },
      { key: 'faktur_pajak', label: 'Faktur pajak / SPT', weight: 2, mandatory: false },
      { key: 'laporan_audited', label: 'Laporan keuangan diaudit', weight: 3, mandatory: false },

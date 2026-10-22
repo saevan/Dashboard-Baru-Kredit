@@ -16,7 +16,7 @@ import { buildOfferOptions } from '../src/core/offer.js';
 import { demoBuSari, seedBuSariApplication } from '../src/services/demo.js';
 
 const fresh = () => storage.clearAll();
-const DOC_KEYS = ['identitas', 'legalitas', 'rekening_koran', 'laporan_keuangan', 'slik_ojk', 'agunan'];
+const DOC_KEYS = ['identitas', 'legalitas', 'rekening_koran', 'surat_keterangan_bank', 'laporan_keuangan', 'slik_ojk', 'agunan'];
 
 function submitBuSari() {
      loginDemo('borrower');
@@ -36,7 +36,9 @@ function submitBuSari() {
 
 function lenderReview(id, score = 0.8) {
      loginDemo('lender');
-     for (const d of apps.reviewDetail(id).documents) apps.setDocumentVerified(id, d.id, true);
+     // Surat keterangan bank lebih dulu: rekening koran divalidasi dengannya.
+     const docs = apps.reviewDetail(id).documents.sort((a, b) => (b.source_key === 'surat_keterangan_bank') - (a.source_key === 'surat_keterangan_bank'));
+     for (const d of docs) apps.setDocumentVerified(id, d.id, true);
      for (const c of FINANCIAL_CHECKLIST) apps.setAuditCheck(id, 'financial', c.key, true);
      for (const c of COLLATERAL_CHECKLIST) apps.setAuditCheck(id, 'collateral', c.key, true);
      for (const q of INTERVIEW_QUESTIONS) apps.setAuditScore(id, q.key, score);
@@ -196,4 +198,19 @@ test('isi otomatis dari laporan contoh Bu Sari mengisi angka wajib', async () =>
      const out = apps.autoFill(draft, doc);
      assert.equal(out.applied, true, out.message);
      for (const k of apps.MIN_FIN_FIELDS) assert.ok(Number.isFinite(draft.borrower.keuangan[k]), k);
+});
+
+test('rekening koran hanya bisa diverifikasi setelah surat keterangan bank', () => {
+     fresh();
+     const id = submitBuSari();
+     loginDemo('lender');
+     const docs = apps.reviewDetail(id).documents;
+     const rk = docs.find((d) => d.source_key === 'rekening_koran');
+     const skb = docs.find((d) => d.source_key === 'surat_keterangan_bank');
+     assert.throws(() => apps.setDocumentVerified(id, rk.id, true), /surat keterangan bank/);
+     apps.setDocumentVerified(id, skb.id, true);
+     apps.setDocumentVerified(id, rk.id, true);
+     assert.equal(apps.reviewDetail(id).documents.find((d) => d.id === rk.id).verified, true);
+     apps.setDocumentVerified(id, skb.id, false);
+     assert.equal(apps.reviewDetail(id).documents.find((d) => d.id === rk.id).verified, false, 'ikut batal');
 });
