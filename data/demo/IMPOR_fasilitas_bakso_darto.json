@@ -1,0 +1,3158 @@
+{
+ "version": 6,
+ "exported_at": "2026-10-22T07:21:51.422Z",
+ "note": "DATA DEMO FIKTIF MEZS.id — impor lewat Pengaturan > Import JSON (merge).",
+ "borrowers": [
+  {
+   "id": "demo_fasilitas_bakso_darto",
+   "nama": "Warung Bakso Pak Darto (DEMO)",
+   "sektor": "IDX-CONSUMER-NON-CYCLICALS",
+   "profil_company": "ukm_mapan",
+   "bentuk_usaha": "ud",
+   "jenis_kredit": "investasi",
+   "tujuan_kredit": "Investasi renovasi dapur dan peralatan cabang kedua (DEMO)",
+   "plafon_diajukan": 250000000,
+   "tenor_bulan": 24,
+   "bunga_tahunan": 0.14,
+   "keuangan": {
+    "penjualan": 1500000000,
+    "laba_bersih": 150000000,
+    "ebit": 200000000,
+    "total_aset": 600000000,
+    "aset_lancar": 250000000,
+    "total_liabilitas": 200000000,
+    "liabilitas_jangka_pendek": 100000000,
+    "ekuitas": 400000000,
+    "arus_kas_operasional": 260000000,
+    "kas": 80000000,
+    "piutang": 20000000,
+    "persediaan": 40000000,
+    "beban_bunga": 10000000,
+    "beban_bunga_lain": 0
+   },
+   "bisnis_manajemen": {
+    "skor_model_bisnis": 0.8,
+    "posisi_pasar": 0.8,
+    "skalabilitas": 0.8,
+    "ketergantungan": 0.8,
+    "tren_keuangan": 0.8,
+    "pengalaman_tim": 0.8,
+    "rekam_jejak_bayar": 0.8,
+    "tata_kelola": 0.8,
+    "skor_industri_risk": 0.8,
+    "prospek_industri": 0.8,
+    "sensitivitas_makro": 0.8
+   },
+   "agunan": {
+    "ketersediaan": "ada",
+    "jenis": "tanah_bangunan",
+    "nilai_agunan": 450000000,
+    "personal_guarantee": false,
+    "pemilik": "Pemilik fiktif DEMO",
+    "lokasi": "Jalan Simulasi No. 7, Kota Uji (DEMO)"
+   },
+   "facility_status": "aktif",
+   "outstanding": 203500000,
+   "created_at": "2026-10-22T07:21:51.392Z",
+   "updated_at": "2026-10-22T07:21:51.421Z",
+   "conditions_precedent": {
+    "PERJANJIAN_KREDIT": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.417Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "PERSETUJUAN_ORGAN": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.419Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "LEGALITAS": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.419Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "SLIK": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.419Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "PENGIKATAN_AGUNAN": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.420Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "ASURANSI_AGUNAN": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.420Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    },
+    "SETORAN_MODAL": {
+     "done": true,
+     "at": "2026-10-22T07:21:51.420Z",
+     "by": "admin@demo.id",
+     "note": "Disimulasikan untuk demo"
+    }
+   },
+   "disbursed_at": "2026-03-16T03:00:00.000Z",
+   "lifecycle_note": "Outstanding setelah 5 angsuran (DEMO)"
+  }
+ ],
+ "analyses": [
+  {
+   "borrower_id": "demo_fasilitas_bakso_darto",
+   "result": {
+    "borrower": {
+     "nama": "Warung Bakso Pak Darto (DEMO)",
+     "sektor": "IDX-CONSUMER-NON-CYCLICALS",
+     "sektor_label": "Consumer Non-Cyclicals",
+     "profil_company": "ukm_mapan",
+     "plafon_diajukan": 250000000,
+     "tenor_bulan": 24,
+     "bunga_tahunan": 0.14,
+     "skema_angsuran": "annuity",
+     "skema_angsuran_label": "Anuitas (cicilan tetap)",
+     "grace_period_bulan": 0
+    },
+    "ratios": {
+     "current_ratio": 2.5,
+     "quick_ratio": 2.1,
+     "cash_ratio": 0.8,
+     "der": 0.5,
+     "dar": 0.3333333333333333,
+     "debt_to_capital": 0.3333333333333333,
+     "roa": 0.25,
+     "roe": 0.375,
+     "npm": 0.1,
+     "opm": 0.13333333333333333,
+     "gpm": null,
+     "icr": 20,
+     "dscr": 1.8050710719080754,
+     "dti": 0.09602576653677626,
+     "dscr_real": 1.8050710719080754,
+     "dti_real": 0.09602576653677626,
+     "icr_real": 7.21397042274088,
+     "ds_ratio": 0.55399480694294,
+     "tato": 2.5,
+     "inventory_turnover": 37.5,
+     "receivable_turnover": 75,
+     "payable_turnover": 7.5,
+     "working_capital": 150000000,
+     "altman_z": 5.449999999999999,
+     "altman_zone": "safe",
+     "dupont": {
+      "ebt": 190000000,
+      "tax_burden": 0.7894736842105263,
+      "interest_burden": 0.95,
+      "operating_margin": 0.13333333333333333,
+      "asset_turnover": 2.5,
+      "equity_multiplier": 1.5,
+      "roe": 0.375,
+      "computed_roe": 0.375,
+      "reconciliation_gap": 0
+     },
+     "_basis": {
+      "ebit": 200000000,
+      "beban_bunga": 10000000,
+      "pokok_tahunan": 125000000,
+      "angsuran_bulanan": 12003220.81709703,
+      "total_angsuran_tahunan": 144038649.80516437,
+      "plafon": 250000000,
+      "nilai_agunan": 450000000,
+      "tenor_bulan": 24,
+      "bunga_tahunan": 0.14,
+      "dscr_basis": "real:ocf",
+      "dscr_numerator_source": "Arus Kas Operasional (OCF)",
+      "annual_debt_service": 144038649.8051644,
+      "dscr_proxy": 1.4814814814814814
+     }
+    },
+    "spread": {
+     "raw": {
+      "penjualan": 1500000000,
+      "laba_bersih": 150000000,
+      "ebit": 200000000,
+      "total_aset": 600000000,
+      "aset_lancar": 250000000,
+      "total_liabilitas": 200000000,
+      "liabilitas_jangka_pendek": 100000000,
+      "ekuitas": 400000000,
+      "arus_kas_operasional": 260000000,
+      "kas": 80000000,
+      "piutang": 20000000,
+      "persediaan": 40000000,
+      "beban_bunga": 10000000,
+      "beban_bunga_lain": 0
+     },
+     "adjusted": {
+      "penjualan": 1500000000,
+      "laba_bersih": 150000000,
+      "ebit": 200000000,
+      "total_aset": 600000000,
+      "aset_lancar": 250000000,
+      "total_liabilitas": 200000000,
+      "liabilitas_jangka_pendek": 100000000,
+      "ekuitas": 400000000,
+      "arus_kas_operasional": 260000000,
+      "kas": 80000000,
+      "piutang": 20000000,
+      "persediaan": 40000000,
+      "beban_bunga": 10000000,
+      "beban_bunga_lain": 0
+     },
+     "adjustments": [],
+     "changed": false,
+     "notes": [],
+     "common_size": {
+      "pct_of_sales": {
+       "hpp": 0,
+       "ebit": 0.13333333333333333,
+       "laba_bersih": 0.1,
+       "beban_bunga": 0.006666666666666667,
+       "arus_kas_operasional": 0.17333333333333334
+      },
+      "pct_of_assets": {
+       "aset_lancar": 0.4166666666666667,
+       "kas": 0.13333333333333333,
+       "piutang": 0.03333333333333333,
+       "persediaan": 0.06666666666666667,
+       "liabilitas_jangka_pendek": 0.16666666666666666,
+       "total_liabilitas": 0.3333333333333333,
+       "ekuitas": 0.6666666666666666
+      },
+      "basis": {
+       "penjualan": 1500000000,
+       "total_aset": 600000000
+      }
+     },
+     "impact": {
+      "aset_lancar": {
+       "before": 250000000,
+       "after": 250000000
+      },
+      "liabilitas_jangka_pendek": {
+       "before": 100000000,
+       "after": 100000000
+      },
+      "current_ratio_before": 2.5,
+      "current_ratio_after": 2.5
+     }
+    },
+    "dupont": {
+     "ebt": 190000000,
+     "tax_burden": 0.7894736842105263,
+     "interest_burden": 0.95,
+     "operating_margin": 0.13333333333333333,
+     "asset_turnover": 2.5,
+     "equity_multiplier": 1.5,
+     "roe": 0.375,
+     "computed_roe": 0.375,
+     "reconciliation_gap": 0
+    },
+    "benchmark": {
+     "sectorKey": "IDX-CONSUMER-NON-CYCLICALS",
+     "sector_label": "Consumer Non-Cyclicals",
+     "items": [
+      {
+       "rasio": "gpm",
+       "label": "Gross Profit Margin",
+       "value": null,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 0.086869,
+       "median": 0.192284,
+       "p75": 0.306576,
+       "p90": 0.452014,
+       "mean": 0.210906,
+       "n": 512,
+       "score": null,
+       "level": null
+      },
+      {
+       "rasio": "opm",
+       "label": "Operating Profit Margin",
+       "value": 0.13333333333333333,
+       "direction": "higher",
+       "p10": -0.010365,
+       "p25": 0.00057,
+       "median": 0.029997,
+       "p75": 0.085134,
+       "p90": 0.145594,
+       "mean": 0.046181,
+       "n": 459,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "npm",
+       "label": "Net Profit Margin",
+       "value": 0.1,
+       "direction": "higher",
+       "p10": -0.007909,
+       "p25": 0.001053,
+       "median": 0.030554,
+       "p75": 0.093998,
+       "p90": 0.157526,
+       "mean": 0.051413,
+       "n": 464,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "roa",
+       "label": "Return on Assets",
+       "value": 0.25,
+       "direction": "higher",
+       "p10": -0.019151,
+       "p25": 0.000586,
+       "median": 0.038812,
+       "p75": 0.085444,
+       "p90": 0.141717,
+       "mean": 0.047055,
+       "n": 489,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "roe",
+       "label": "Return on Equity",
+       "value": 0.375,
+       "direction": "higher",
+       "p10": -0.007753,
+       "p25": 0.003762,
+       "median": 0.07782,
+       "p75": 0.156062,
+       "p90": 0.233743,
+       "mean": 0.086581,
+       "n": 462,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "dar",
+       "label": "Debt to Assets Ratio",
+       "value": 0.3333333333333333,
+       "direction": "lower",
+       "p10": 0.0281,
+       "p25": 0.19979,
+       "median": 0.434507,
+       "p75": 0.592812,
+       "p90": 0.752495,
+       "mean": 0.412566,
+       "n": 514,
+       "score": 85.77613324414791,
+       "level": "above_median"
+      },
+      {
+       "rasio": "der",
+       "label": "Debt to Equity Ratio",
+       "value": 0.5,
+       "direction": "lower",
+       "p10": 0,
+       "p25": 0.212727,
+       "median": 0.641762,
+       "p75": 1.207718,
+       "p90": 1.87765,
+       "mean": 0.808337,
+       "n": 468,
+       "score": 83.26051487640869,
+       "level": "above_median"
+      },
+      {
+       "rasio": "ltd_to_equity",
+       "label": "LTD to Equity",
+       "value": null,
+       "direction": "lower",
+       "p10": 0,
+       "p25": 0.021191,
+       "median": 0.097865,
+       "p75": 0.381516,
+       "p90": 0.69725,
+       "mean": 0.238567,
+       "n": 472,
+       "score": null,
+       "level": null
+      },
+      {
+       "rasio": "debt_to_capital",
+       "label": "Debt to Capital",
+       "value": 0.3333333333333333,
+       "direction": "lower",
+       "p10": 0.0281,
+       "p25": 0.19979,
+       "median": 0.434507,
+       "p75": 0.592812,
+       "p90": 0.752495,
+       "mean": 0.412566,
+       "n": 514,
+       "score": 85.77613324414791,
+       "level": "above_median"
+      },
+      {
+       "rasio": "icr",
+       "label": "Interest Coverage Ratio",
+       "value": 20,
+       "direction": "higher",
+       "p10": -1.26456,
+       "p25": 0,
+       "median": 0.768224,
+       "p75": 4.064552,
+       "p90": 7.84398,
+       "mean": 2.24894,
+       "n": 420,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "current_ratio",
+       "label": "Current Ratio",
+       "value": 2.5,
+       "direction": "higher",
+       "p10": 0.018986,
+       "p25": 0.772897,
+       "median": 1.311287,
+       "p75": 2.08097,
+       "p90": 3.190177,
+       "mean": 1.556836,
+       "n": 473,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "quick_ratio",
+       "label": "Quick Ratio",
+       "value": 2.1,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 0.335874,
+       "median": 0.795533,
+       "p75": 1.449125,
+       "p90": 2.30025,
+       "mean": 1.019465,
+       "n": 473,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "cash_ratio",
+       "label": "Cash Ratio",
+       "value": 0.8,
+       "direction": "higher",
+       "p10": 0.000221,
+       "p25": 0.028716,
+       "median": 0.142949,
+       "p75": 0.429643,
+       "p90": 0.847689,
+       "mean": 0.285543,
+       "n": 464,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "tato",
+       "label": "Total Asset Turnover",
+       "value": 2.5,
+       "direction": "higher",
+       "p10": 0.038203,
+       "p25": 0.428351,
+       "median": 0.786434,
+       "p75": 1.358808,
+       "p90": 1.999026,
+       "mean": 0.92787,
+       "n": 492,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "inventory_turnover",
+       "label": "Inventory Turnover",
+       "value": 37.5,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 2.422972,
+       "median": 5.021874,
+       "p75": 7.342108,
+       "p90": 11.258907,
+       "mean": 5.365731,
+       "n": 478,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "receivable_turnover",
+       "label": "Receivable Turnover",
+       "value": 75,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 0.552916,
+       "median": 1.378305,
+       "p75": 3.116718,
+       "p90": 4.900587,
+       "mean": 2.10173,
+       "n": 467,
+       "score": 100,
+       "level": "above_p75"
+      },
+      {
+       "rasio": "payable_turnover",
+       "label": "Payable Turnover",
+       "value": 7.5,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 4.782981,
+       "median": 8.185552,
+       "p75": 13.968906,
+       "p90": 22.387344,
+       "mean": 10.220592,
+       "n": 473,
+       "score": 69.9629853425542,
+       "level": "above_p25"
+      },
+      {
+       "rasio": "cash_turnover",
+       "label": "Cash Turnover",
+       "value": null,
+       "direction": "higher",
+       "p10": -2.863598,
+       "p25": 0,
+       "median": 2.543307,
+       "p75": 5.380347,
+       "p90": 8.821201,
+       "mean": 2.936566,
+       "n": 419,
+       "score": null,
+       "level": null
+      },
+      {
+       "rasio": "fato",
+       "label": "Fixed Asset Turnover",
+       "value": null,
+       "direction": "higher",
+       "p10": 0,
+       "p25": 0.599917,
+       "median": 1.338241,
+       "p75": 3.0996,
+       "p90": 4.238519,
+       "mean": 1.92555,
+       "n": 469,
+       "score": null,
+       "level": null
+      },
+      {
+       "rasio": "working_capital_turnover",
+       "label": "Working Capital Turnover",
+       "value": null,
+       "direction": "higher",
+       "p10": -2.863598,
+       "p25": 0,
+       "median": 2.543307,
+       "p75": 5.380347,
+       "p90": 8.821201,
+       "mean": 2.936566,
+       "n": 419,
+       "score": null,
+       "level": null
+      }
+     ]
+    },
+    "gap": {
+     "items": [
+      {
+       "rasio": "opm",
+       "label": "Operating Profit Margin",
+       "borrower": 0.13333333333333333,
+       "median": 0.029997,
+       "p25": 0.00057,
+       "p75": 0.085134,
+       "direction": "higher",
+       "raw_gap_pct": 344.5,
+       "gap_pct": 344.5,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "npm",
+       "label": "Net Profit Margin",
+       "borrower": 0.1,
+       "median": 0.030554,
+       "p25": 0.001053,
+       "p75": 0.093998,
+       "direction": "higher",
+       "raw_gap_pct": 227.3,
+       "gap_pct": 227.3,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "roa",
+       "label": "Return on Assets",
+       "borrower": 0.25,
+       "median": 0.038812,
+       "p25": 0.000586,
+       "p75": 0.085444,
+       "direction": "higher",
+       "raw_gap_pct": 544.1,
+       "gap_pct": 544.1,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "roe",
+       "label": "Return on Equity",
+       "borrower": 0.375,
+       "median": 0.07782,
+       "p25": 0.003762,
+       "p75": 0.156062,
+       "direction": "higher",
+       "raw_gap_pct": 381.9,
+       "gap_pct": 381.9,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "dar",
+       "label": "Debt to Assets Ratio",
+       "borrower": 0.3333333333333333,
+       "median": 0.434507,
+       "p25": 0.19979,
+       "p75": 0.592812,
+       "direction": "lower",
+       "raw_gap_pct": -23.3,
+       "gap_pct": 23.3,
+       "gap_score": 23.3,
+       "is_main": false
+      },
+      {
+       "rasio": "der",
+       "label": "Debt to Equity Ratio",
+       "borrower": 0.5,
+       "median": 0.641762,
+       "p25": 0.212727,
+       "p75": 1.207718,
+       "direction": "lower",
+       "raw_gap_pct": -22.1,
+       "gap_pct": 22.1,
+       "gap_score": 22.1,
+       "is_main": true
+      },
+      {
+       "rasio": "icr",
+       "label": "Interest Coverage Ratio",
+       "borrower": 20,
+       "median": 0.768224,
+       "p25": 0,
+       "p75": 4.064552,
+       "direction": "higher",
+       "raw_gap_pct": 2503.4,
+       "gap_pct": 2503.4,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "current_ratio",
+       "label": "Current Ratio",
+       "borrower": 2.5,
+       "median": 1.311287,
+       "p25": 0.772897,
+       "p75": 2.08097,
+       "direction": "higher",
+       "raw_gap_pct": 90.7,
+       "gap_pct": 90.7,
+       "gap_score": 90.7,
+       "is_main": true
+      },
+      {
+       "rasio": "quick_ratio",
+       "label": "Quick Ratio",
+       "borrower": 2.1,
+       "median": 0.795533,
+       "p25": 0.335874,
+       "p75": 1.449125,
+       "direction": "higher",
+       "raw_gap_pct": 164,
+       "gap_pct": 164,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "cash_ratio",
+       "label": "Cash Ratio",
+       "borrower": 0.8,
+       "median": 0.142949,
+       "p25": 0.028716,
+       "p75": 0.429643,
+       "direction": "higher",
+       "raw_gap_pct": 459.6,
+       "gap_pct": 459.6,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "tato",
+       "label": "Total Asset Turnover",
+       "borrower": 2.5,
+       "median": 0.786434,
+       "p25": 0.428351,
+       "p75": 1.358808,
+       "direction": "higher",
+       "raw_gap_pct": 217.9,
+       "gap_pct": 217.9,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "inventory_turnover",
+       "label": "Inventory Turnover",
+       "borrower": 37.5,
+       "median": 5.021874,
+       "p25": 2.422972,
+       "p75": 7.342108,
+       "direction": "higher",
+       "raw_gap_pct": 646.7,
+       "gap_pct": 646.7,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "receivable_turnover",
+       "label": "Receivable Turnover",
+       "borrower": 75,
+       "median": 1.378305,
+       "p25": 0.552916,
+       "p75": 3.116718,
+       "direction": "higher",
+       "raw_gap_pct": 5341.5,
+       "gap_pct": 5341.5,
+       "gap_score": 100,
+       "is_main": false
+      },
+      {
+       "rasio": "payable_turnover",
+       "label": "Payable Turnover",
+       "borrower": 7.5,
+       "median": 8.185552,
+       "p25": 4.782981,
+       "p75": 13.968906,
+       "direction": "higher",
+       "raw_gap_pct": -8.4,
+       "gap_pct": -8.4,
+       "gap_score": -8.4,
+       "is_main": false
+      }
+     ],
+     "main_items": [
+      {
+       "rasio": "npm",
+       "label": "Net Profit Margin",
+       "borrower": 0.1,
+       "median": 0.030554,
+       "p25": 0.001053,
+       "p75": 0.093998,
+       "direction": "higher",
+       "raw_gap_pct": 227.3,
+       "gap_pct": 227.3,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "roa",
+       "label": "Return on Assets",
+       "borrower": 0.25,
+       "median": 0.038812,
+       "p25": 0.000586,
+       "p75": 0.085444,
+       "direction": "higher",
+       "raw_gap_pct": 544.1,
+       "gap_pct": 544.1,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "roe",
+       "label": "Return on Equity",
+       "borrower": 0.375,
+       "median": 0.07782,
+       "p25": 0.003762,
+       "p75": 0.156062,
+       "direction": "higher",
+       "raw_gap_pct": 381.9,
+       "gap_pct": 381.9,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "der",
+       "label": "Debt to Equity Ratio",
+       "borrower": 0.5,
+       "median": 0.641762,
+       "p25": 0.212727,
+       "p75": 1.207718,
+       "direction": "lower",
+       "raw_gap_pct": -22.1,
+       "gap_pct": 22.1,
+       "gap_score": 22.1,
+       "is_main": true
+      },
+      {
+       "rasio": "icr",
+       "label": "Interest Coverage Ratio",
+       "borrower": 20,
+       "median": 0.768224,
+       "p25": 0,
+       "p75": 4.064552,
+       "direction": "higher",
+       "raw_gap_pct": 2503.4,
+       "gap_pct": 2503.4,
+       "gap_score": 100,
+       "is_main": true
+      },
+      {
+       "rasio": "current_ratio",
+       "label": "Current Ratio",
+       "borrower": 2.5,
+       "median": 1.311287,
+       "p25": 0.772897,
+       "p75": 2.08097,
+       "direction": "higher",
+       "raw_gap_pct": 90.7,
+       "gap_pct": 90.7,
+       "gap_score": 90.7,
+       "is_main": true
+      }
+     ],
+     "avg_gap_pct": 628.3,
+     "breach_count": 0,
+     "verdict": "acceptable",
+     "threshold": {
+      "too_far": -30,
+      "mainRatiosMinBreach": 3
+     }
+    },
+    "weights": {
+     "profile": {
+      "key": "ukm_mapan",
+      "label": "UKM Mapan",
+      "quanti": 0.65,
+      "quali": 0.35,
+      "rasio_dominan": [
+       "roa",
+       "current_ratio",
+       "der"
+      ]
+     },
+     "pillar_base": {
+      "business_viability": 0.2,
+      "financial_health": 0.25,
+      "cash_flow": 0.25,
+      "management": 0.15,
+      "collateral": 0.1,
+      "industry_risk": 0.05
+     },
+     "pillar_effective": {
+      "business_viability": 0.2,
+      "financial_health": 0.25,
+      "cash_flow": 0.25,
+      "management": 0.15,
+      "collateral": 0.1,
+      "industry_risk": 0.05
+     },
+     "pillar_notes": [],
+     "component_effective": {
+      "model_bisnis": 0.35,
+      "posisi_pasar": 0.25,
+      "skalabilitas": 0.25,
+      "ketergantungan": 0.15,
+      "roa": 0.2731551521264078,
+      "current_ratio": 0.17645822827365945,
+      "der": 0.1348172428606115,
+      "altman_z": 0.12140228983395904,
+      "tren_keuangan": 0.2941670869053622,
+      "dscr": 0.23184713375796176,
+      "icr": 0.2484076433121019,
+      "dti": 0.13248407643312102,
+      "ocf_positif": 0.3210191082802547,
+      "cash_runway": 0.06624203821656051,
+      "pengalaman_tim": 0.4,
+      "rekam_jejak_bayar": 0.35,
+      "tata_kelola": 0.25,
+      "ltv": 0.65,
+      "jenis_agunan": 0.21,
+      "personal_guarantee": 0.13999999999999999,
+      "risiko_sektor": 0.5,
+      "prospek_industri": 0.3,
+      "sensitivitas_makro": 0.2
+     },
+     "notes": [
+      {
+       "rasio": "roa",
+       "from": 0.2166666666666667,
+       "to": 0.32500000000000007,
+       "gap_score": 100,
+       "gap_pct": 100,
+       "factor": 1.5,
+       "pillar": "financial_health"
+      },
+      {
+       "rasio": "current_ratio",
+       "from": 0.1444444444444445,
+       "to": 0.20995000000000005,
+       "gap_score": 90.7,
+       "gap_pct": 90.7,
+       "factor": 1.4535,
+       "pillar": "financial_health"
+      },
+      {
+       "rasio": "der",
+       "from": 0.1444444444444445,
+       "to": 0.1604055555555556,
+       "gap_score": 22.1,
+       "gap_pct": 22.1,
+       "factor": 1.1105,
+       "pillar": "financial_health"
+      },
+      {
+       "rasio": "icr",
+       "from": 0.18055555555555558,
+       "to": 0.27083333333333337,
+       "gap_score": 100,
+       "gap_pct": 100,
+       "factor": 1.5,
+       "pillar": "cash_flow"
+      }
+     ],
+     "sensitivity_k": 0.5,
+     "ahp": null
+    },
+    "subscores": {
+     "model_bisnis": 80,
+     "posisi_pasar": 80,
+     "skalabilitas": 80,
+     "ketergantungan": 80,
+     "roa": 100,
+     "current_ratio": 100,
+     "der": 83.26051487640869,
+     "altman_z": 96.69999999999999,
+     "tren_keuangan": 80,
+     "dscr": 100,
+     "icr": 100,
+     "dti": 96.79914111544079,
+     "ocf_positif": 100,
+     "cash_runway": 60,
+     "pengalaman_tim": 70,
+     "rekam_jejak_bayar": 80,
+     "tata_kelola": 80,
+     "ltv": 93.77777777777777,
+     "jenis_agunan": 90,
+     "personal_guarantee": 50,
+     "risiko_sektor": 80,
+     "prospek_industri": 80,
+     "sensitivitas_makro": 80
+    },
+    "score_details": {
+     "model_bisnis": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "posisi_pasar": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "skalabilitas": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "ketergantungan": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.7 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "tren_keuangan": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "tata_kelola": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.65 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "risiko_sektor": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "prospek_industri": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "sensitivitas_makro": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; dibatasi ke 0–1. Jika kosong, nilai bawaan 0.6 × 100.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "rekam_jejak_bayar": {
+      "input": 0.8,
+      "rule": "Nilai 0–1 × 100; memakai skor manajemen bila rekam jejak belum diisi; nilai bawaan 0,6 jika keduanya kosong.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 80
+     },
+     "pengalaman_tim": {
+      "input": {
+       "penilaian_tim": 0.8,
+       "tahun_operasi": null
+      },
+      "rule": "50% × (penilaian tim 0–1 × 100) + 50% × skor lama operasi. Lama operasi: 0/1/3/5/8/10 tahun → 30/50/70/85/95/100, interpolasi linear. Input kosong memakai 60 pada bagian tersebut.",
+      "used_default": true,
+      "source": "Input model",
+      "score": 70
+     },
+     "ocf_positif": {
+      "input": {
+       "penilaian": null,
+       "ocf": 260000000
+      },
+      "rule": "Penilaian OCF 0–1 × 100. Jika belum diisi: OCF > 0 → 100, selain itu → 30. Input penilaian tidak numerik memakai 50.",
+      "used_default": false,
+      "source": "Diturunkan dari arus kas operasi",
+      "score": 100
+     },
+     "dscr": {
+      "input": 1.8050710719080754,
+      "rule": "DSCR 0/0,5/0,8/1/1,2/1,3/1,5 → skor 0/10/30/55/75/85/100; interpolasi linear, maksimum 100.",
+      "used_default": false,
+      "source": "Ambang model",
+      "score": 100
+     },
+     "icr": {
+      "input": 20,
+      "rule": "Skor posisi terhadap persentil benchmark sektor; lebih tinggi lebih baik.",
+      "used_default": false,
+      "source": "Benchmark sektor",
+      "benchmark": {
+       "rasio": "icr",
+       "label": "Interest Coverage Ratio",
+       "value": 20,
+       "direction": "higher",
+       "p10": -1.26456,
+       "p25": 0,
+       "median": 0.768224,
+       "p75": 4.064552,
+       "p90": 7.84398,
+       "mean": 2.24894,
+       "n": 420,
+       "score": 100,
+       "level": "above_p75"
+      },
+      "score": 100
+     },
+     "dti": {
+      "input": 0.09602576653677626,
+      "rule": "DTI 0/0,15/0,25/0,35/0,5/0,7/1 → skor 100/95/80/60/30/5/0; interpolasi linear.",
+      "used_default": false,
+      "source": "Ambang model",
+      "score": 96.79914111544079
+     },
+     "ltv": {
+      "input": 0.5555555555555556,
+      "rule": "LTV 0/0,4/0,6/0,8/1/1,2/1,5 → skor 100/100/92/80/55/25/0; interpolasi linear.",
+      "used_default": false,
+      "source": "Ambang model",
+      "score": 93.77777777777777
+     },
+     "altman_z": {
+      "input": 5.449999999999999,
+      "rule": "Z 0/1/1,81/2,5/2,99/4/6 → skor 0/10/30/55/70/88/100; interpolasi linear.",
+      "used_default": false,
+      "source": "Ambang model",
+      "score": 96.69999999999999
+     },
+     "cash_runway": {
+      "input": null,
+      "rule": "Runway 0/1/3/6/12 bulan → skor 0/25/60/85/100; interpolasi linear.",
+      "used_default": true,
+      "source": "Ambang model",
+      "score": 60
+     },
+     "current_ratio": {
+      "input": 2.5,
+      "rule": "Skor posisi terhadap persentil benchmark sektor; lebih tinggi lebih baik.",
+      "used_default": false,
+      "source": "Benchmark sektor",
+      "benchmark": {
+       "rasio": "current_ratio",
+       "label": "Current Ratio",
+       "value": 2.5,
+       "direction": "higher",
+       "p10": 0.018986,
+       "p25": 0.772897,
+       "median": 1.311287,
+       "p75": 2.08097,
+       "p90": 3.190177,
+       "mean": 1.556836,
+       "n": 473,
+       "score": 100,
+       "level": "above_p75"
+      },
+      "score": 100
+     },
+     "der": {
+      "input": 0.5,
+      "rule": "Skor posisi terhadap persentil benchmark sektor; lebih rendah lebih baik.",
+      "used_default": false,
+      "source": "Benchmark sektor",
+      "benchmark": {
+       "rasio": "der",
+       "label": "Debt to Equity Ratio",
+       "value": 0.5,
+       "direction": "lower",
+       "p10": 0,
+       "p25": 0.212727,
+       "median": 0.641762,
+       "p75": 1.207718,
+       "p90": 1.87765,
+       "mean": 0.808337,
+       "n": 468,
+       "score": 83.26051487640869,
+       "level": "above_median"
+      },
+      "score": 83.26051487640869
+     },
+     "roa": {
+      "input": 0.25,
+      "rule": "Skor posisi terhadap persentil benchmark sektor; lebih tinggi lebih baik.",
+      "used_default": false,
+      "source": "Benchmark sektor",
+      "benchmark": {
+       "rasio": "roa",
+       "label": "Return on Assets",
+       "value": 0.25,
+       "direction": "higher",
+       "p10": -0.019151,
+       "p25": 0.000586,
+       "median": 0.038812,
+       "p75": 0.085444,
+       "p90": 0.141717,
+       "mean": 0.047055,
+       "n": 489,
+       "score": 100,
+       "level": "above_p75"
+      },
+      "score": 100
+     },
+     "jenis_agunan": {
+      "input": "tanah_bangunan",
+      "rule": "tanah_bangunan → 90; deposito → 95; kendaraan → 60; mesin → 55.00000000000001; persediaan → 40; piutang → 45; lainnya → 30; jenis tidak dikenal → 40.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 90
+     },
+     "personal_guarantee": {
+      "input": false,
+      "rule": "Personal guarantee tersedia → 90; tidak tersedia → 50.",
+      "used_default": false,
+      "source": "Input model",
+      "score": 50
+     }
+    },
+    "pillars": [
+     {
+      "key": "business_viability",
+      "label": "Business Viability",
+      "score": 80,
+      "weight": 0.2
+     },
+     {
+      "key": "financial_health",
+      "label": "Financial Health",
+      "score": 91.46,
+      "weight": 0.25
+     },
+     {
+      "key": "cash_flow",
+      "label": "Cash Flow & Repayment",
+      "score": 96.93,
+      "weight": 0.25
+     },
+     {
+      "key": "management",
+      "label": "Management & Track Record",
+      "score": 76,
+      "weight": 0.15
+     },
+     {
+      "key": "collateral",
+      "label": "Collateral & Guarantee",
+      "score": 86.86,
+      "weight": 0.1
+     },
+     {
+      "key": "industry_risk",
+      "label": "Industry & Macro Risk",
+      "score": 80,
+      "weight": 0.05
+     }
+    ],
+    "pillarScores": {
+     "business_viability": 80,
+     "financial_health": 91.46,
+     "cash_flow": 96.93,
+     "management": 76,
+     "collateral": 86.86,
+     "industry_risk": 80
+    },
+    "finalScore": 87.2,
+    "five_c": {
+     "weights": {
+      "character": 0.15,
+      "capacity": 0.45,
+      "capital": 0.25,
+      "collateral": 0.1,
+      "conditions": 0.05
+     },
+     "items": [
+      {
+       "key": "character",
+       "name": "Character",
+       "id": "Karakter",
+       "ico": "🧭",
+       "q": "Willingness to pay",
+       "pillar": null,
+       "weight": 0.15,
+       "score": 76,
+       "tone": "good",
+       "label": "Kuat",
+       "desc": "Kemauan & integritas borrower membayar — dinilai dari rekam jejak pembayaran, tata kelola, serta pengalaman tim manajemen.",
+       "components": [
+        {
+         "key": "pengalaman_tim",
+         "label": "Pengalaman Tim",
+         "score": 70
+        },
+        {
+         "key": "rekam_jejak_bayar",
+         "label": "Rekam Jejak Bayar",
+         "score": 80
+        },
+        {
+         "key": "tata_kelola",
+         "label": "Tata Kelola/Legalitas",
+         "score": 80
+        }
+       ]
+      },
+      {
+       "key": "capacity",
+       "name": "Capacity",
+       "id": "Kapasitas",
+       "ico": "⚙️",
+       "q": "Ability to service debt",
+       "pillar": null,
+       "weight": 0.45,
+       "score": 88.5,
+       "tone": "good",
+       "label": "Sangat Kuat",
+       "desc": "Kemampuan menghasilkan arus kas untuk membayar utang — kekokohan model bisnis, DSCR/ICR/DTI, arus kas operasional, dan cash runway.",
+       "components": [
+        {
+         "key": "model_bisnis",
+         "label": "Model Bisnis",
+         "score": 80
+        },
+        {
+         "key": "posisi_pasar",
+         "label": "Posisi Pasar",
+         "score": 80
+        },
+        {
+         "key": "skalabilitas",
+         "label": "Skalabilitas",
+         "score": 80
+        },
+        {
+         "key": "ketergantungan",
+         "label": "Ketergantungan (diversifikasi)",
+         "score": 80
+        },
+        {
+         "key": "dscr",
+         "label": "DSCR",
+         "score": 100
+        },
+        {
+         "key": "icr",
+         "label": "ICR",
+         "score": 100
+        },
+        {
+         "key": "dti",
+         "label": "DTI",
+         "score": 96.8
+        },
+        {
+         "key": "ocf_positif",
+         "label": "Arus Kas Operasional Positif",
+         "score": 100
+        },
+        {
+         "key": "cash_runway",
+         "label": "Cash Runway",
+         "score": 60
+        }
+       ]
+      },
+      {
+       "key": "capital",
+       "name": "Capital",
+       "id": "Modal",
+       "ico": "🏦",
+       "q": "Skin in the game",
+       "pillar": null,
+       "weight": 0.25,
+       "score": 91.5,
+       "tone": "good",
+       "label": "Sangat Kuat",
+       "desc": "Buffer ekuitas & kekuatan neraca borrower — profitabilitas, likuiditas, solvabilitas, dan Altman Z-Score.",
+       "components": [
+        {
+         "key": "roa",
+         "label": "Profitabilitas (ROA)",
+         "score": 100
+        },
+        {
+         "key": "current_ratio",
+         "label": "Likuiditas (Current Ratio)",
+         "score": 100
+        },
+        {
+         "key": "der",
+         "label": "Solvabilitas (DER)",
+         "score": 83.3
+        },
+        {
+         "key": "altman_z",
+         "label": "Altman Z-Score",
+         "score": 96.7
+        },
+        {
+         "key": "tren_keuangan",
+         "label": "Tren Keuangan",
+         "score": 80
+        }
+       ]
+      },
+      {
+       "key": "collateral",
+       "name": "Collateral",
+       "id": "Agunan",
+       "ico": "🏠",
+       "q": "Loss Given Default",
+       "pillar": null,
+       "weight": 0.1,
+       "score": 86.9,
+       "tone": "good",
+       "label": "Sangat Kuat",
+       "desc": "Agunan tangible penyerap kerugian saat gagal bayar — Loan-to-Value (LTV), jenis/likuiditas agunan, dan personal guarantee.",
+       "components": [
+        {
+         "key": "ltv",
+         "label": "LTV",
+         "score": 93.8
+        },
+        {
+         "key": "jenis_agunan",
+         "label": "Jenis & Likuiditas Agunan",
+         "score": 90
+        },
+        {
+         "key": "personal_guarantee",
+         "label": "Personal Guarantee",
+         "score": 50
+        }
+       ]
+      },
+      {
+       "key": "conditions",
+       "name": "Conditions",
+       "id": "Kondisi",
+       "ico": "🌐",
+       "q": "Macro reality",
+       "pillar": null,
+       "weight": 0.05,
+       "score": 80,
+       "tone": "good",
+       "label": "Sangat Kuat",
+       "desc": "Konteks makro & sektor di luar kendali borrower — risiko inheren sektor, prospek industri, dan sensitivitas makro.",
+       "components": [
+        {
+         "key": "risiko_sektor",
+         "label": "Risiko Sektor",
+         "score": 80
+        },
+        {
+         "key": "prospek_industri",
+         "label": "Prospek Industri",
+         "score": 80
+        },
+        {
+         "key": "sensitivitas_makro",
+         "label": "Sensitivitas Makro",
+         "score": 80
+        }
+       ]
+      }
+     ],
+     "weighted_score": 86.8,
+     "weakest": "character",
+     "strongest": "capital",
+     "tone": "good"
+    },
+    "decision": {
+     "decision": "LAYAK",
+     "decision_label": "✅ LAYAK",
+     "confidence": 0.89,
+     "score": 87.2,
+     "hard_rules_triggered": [],
+     "soft_notes": [],
+     "watched_notes": [],
+     "rules_evaluated": [
+      {
+       "key": "dscr_min",
+       "rule": "DSCR minimum",
+       "metric": "dscr",
+       "value": 1.8050710719080754,
+       "limit": 1.15,
+       "op": "gte",
+       "unit": "x",
+       "enforcement": "hard",
+       "violated": false,
+       "message": "DSCR minimum: 1.81x ✓ (batas 1.15x)"
+      },
+      {
+       "key": "icr_min",
+       "rule": "ICR minimum",
+       "metric": "icr",
+       "value": 20,
+       "limit": 1.2,
+       "op": "gte",
+       "unit": "x",
+       "enforcement": "hard",
+       "violated": false,
+       "message": "ICR minimum: 20.00x ✓ (batas 1.20x)"
+      },
+      {
+       "key": "dti_max",
+       "rule": "DTI maksimum",
+       "metric": "dti",
+       "value": 0.09602576653677626,
+       "limit": 0.35,
+       "op": "lte",
+       "unit": "%",
+       "enforcement": "soft",
+       "violated": false,
+       "message": "DTI maksimum: 9.6% ✓ (batas 35.0%)"
+      },
+      {
+       "key": "ds_ratio_max",
+       "rule": "Debt Service Ratio maksimum",
+       "metric": "ds_ratio",
+       "value": 0.55399480694294,
+       "limit": 0.6,
+       "op": "lte",
+       "unit": "%",
+       "enforcement": "soft",
+       "violated": false,
+       "message": "Debt Service Ratio maksimum: 55.4% ✓ (batas 60.0%)"
+      },
+      {
+       "key": "ltv_max",
+       "rule": "LTV maksimum",
+       "metric": "ltv",
+       "value": 0.5555555555555556,
+       "limit": 0.75,
+       "op": "lte",
+       "unit": "x",
+       "enforcement": "soft",
+       "violated": false,
+       "message": "LTV maksimum: 0.56x ✓ (batas 0.75x)"
+      },
+      {
+       "key": "altman_z_distress",
+       "rule": "Altman Z — batas distress",
+       "metric": "altman_z",
+       "value": 5.449999999999999,
+       "limit": 1.81,
+       "op": "gt",
+       "unit": "Z",
+       "enforcement": "soft",
+       "violated": false,
+       "message": "Altman Z — batas distress: 5.45 ✓ (batas 1.81)"
+      },
+      {
+       "key": "negative_ocf_periods",
+       "rule": "Arus kas operasi negatif berturut-turut",
+       "metric": "negative_ocf_periods",
+       "value": 0,
+       "limit": 2,
+       "op": "lt",
+       "unit": "periode",
+       "enforcement": "hard",
+       "violated": false,
+       "message": "Arus kas operasi negatif berturut-turut: 0 ✓ (batas 2)"
+      },
+      {
+       "key": "arrears_days_max",
+       "rule": "Tunggakan maksimum",
+       "metric": "arrears_days",
+       "value": 0,
+       "limit": 90,
+       "op": "lte",
+       "unit": "hari",
+       "enforcement": "hard",
+       "violated": false,
+       "message": "Tunggakan maksimum: 0 ✓ (batas 90)"
+      }
+     ],
+     "gap_analysis": {
+      "avg_gap_pct": 628.3,
+      "verdict": "acceptable",
+      "breach_count": 0
+     },
+     "reasons": [
+      "✓ DSCR 1.81x [real:ocf] (min 1.15x)",
+      "ICR 20x ✓ EBIT menutup bunga",
+      "Debt Service Ratio 55.4% ✓ beban utang terkendali",
+      "Altman Z 5.45 ✓ zona aman",
+      "Net Profit Margin 0.1000 di atas median industri 0.0306 (gap 227.3%) ✓",
+      "Return on Assets 0.2500 di atas median industri 0.0388 (gap 544.1%) ✓",
+      "Return on Equity 0.3750 di atas median industri 0.0778 (gap 381.9%) ✓",
+      "Debt to Equity Ratio 0.5000 di atas median industri 0.6418 (gap 22.1%) ✓",
+      "Skor akhir 87.2 → ✅ LAYAK"
+     ],
+     "conditions": [],
+     "stress_capped": false
+    },
+    "debtService": {
+     "scheme": "annuity",
+     "scheme_label": "Anuitas (cicilan tetap)",
+     "periode_angsuran": "bulanan",
+     "periodicity_label": "Bulanan",
+     "periodic": {
+      "periodicity": "bulanan",
+      "periods_per_month": 1,
+      "periods_per_year": 12,
+      "per_period": 12003220.817097036,
+      "monthly_equivalent": 12003220.817097036,
+      "tenor_period": 24,
+      "basis": "monthly_budget_equivalent"
+     },
+     "new_loan": {
+      "scheme": "annuity",
+      "principal": 250000000,
+      "tenor_bulan": 24,
+      "grace_bulan": 0,
+      "schedule": [
+       {
+        "month": 1,
+        "payment": 12003220.81709703,
+        "interest": 2916666.666666667,
+        "principal": 9086554.150430363
+       },
+       {
+        "month": 2,
+        "payment": 12003220.81709703,
+        "interest": 2810656.8682449795,
+        "principal": 9192563.948852051
+       },
+       {
+        "month": 3,
+        "payment": 12003220.81709703,
+        "interest": 2703410.2888417053,
+        "principal": 9299810.528255325
+       },
+       {
+        "month": 4,
+        "payment": 12003220.81709703,
+        "interest": 2594912.4993453934,
+        "principal": 9408308.317751637
+       },
+       {
+        "month": 5,
+        "payment": 12003220.81709703,
+        "interest": 2485148.9023049576,
+        "principal": 9518071.914792072
+       },
+       {
+        "month": 6,
+        "payment": 12003220.81709703,
+        "interest": 2374104.7299657166,
+        "principal": 9629116.087131314
+       },
+       {
+        "month": 7,
+        "payment": 12003220.81709703,
+        "interest": 2261765.042282518,
+        "principal": 9741455.774814513
+       },
+       {
+        "month": 8,
+        "payment": 12003220.81709703,
+        "interest": 2148114.724909682,
+        "principal": 9855106.092187349
+       },
+       {
+        "month": 9,
+        "payment": 12003220.81709703,
+        "interest": 2033138.4871674962,
+        "principal": 9970082.329929534
+       },
+       {
+        "month": 10,
+        "payment": 12003220.81709703,
+        "interest": 1916820.859984985,
+        "principal": 10086399.957112046
+       },
+       {
+        "month": 11,
+        "payment": 12003220.81709703,
+        "interest": 1799146.193818678,
+        "principal": 10204074.623278353
+       },
+       {
+        "month": 12,
+        "payment": 12003220.81709703,
+        "interest": 1680098.656547097,
+        "principal": 10323122.160549933
+       },
+       {
+        "month": 13,
+        "payment": 12003220.81709703,
+        "interest": 1559662.2313406812,
+        "principal": 10443558.58575635
+       },
+       {
+        "month": 14,
+        "payment": 12003220.81709703,
+        "interest": 1437820.714506857,
+        "principal": 10565400.102590173
+       },
+       {
+        "month": 15,
+        "payment": 12003220.81709703,
+        "interest": 1314557.7133099716,
+        "principal": 10688663.103787059
+       },
+       {
+        "month": 16,
+        "payment": 12003220.81709703,
+        "interest": 1189856.6437657892,
+        "principal": 10813364.173331242
+       },
+       {
+        "month": 17,
+        "payment": 12003220.81709703,
+        "interest": 1063700.7284102582,
+        "principal": 10939520.088686772
+       },
+       {
+        "month": 18,
+        "payment": 12003220.81709703,
+        "interest": 936072.9940422458,
+        "principal": 11067147.823054785
+       },
+       {
+        "month": 19,
+        "payment": 12003220.81709703,
+        "interest": 806956.26943994,
+        "principal": 11196264.547657091
+       },
+       {
+        "month": 20,
+        "payment": 12003220.81709703,
+        "interest": 676333.1830506072,
+        "principal": 11326887.634046424
+       },
+       {
+        "month": 21,
+        "payment": 12003220.81709703,
+        "interest": 544186.160653399,
+        "principal": 11459034.656443631
+       },
+       {
+        "month": 22,
+        "payment": 12003220.81709703,
+        "interest": 410497.42299488996,
+        "principal": 11592723.394102141
+       },
+       {
+        "month": 23,
+        "payment": 12003220.81709703,
+        "interest": 275248.9833970316,
+        "principal": 11727971.8337
+       },
+       {
+        "month": 24,
+        "payment": 12003220.817097051,
+        "interest": 138422.64533719828,
+        "principal": 11864798.171759853
+       }
+      ],
+      "monthly_avg": 12003220.817097036,
+      "first_payment": 12003220.81709703,
+      "peak_payment": 12003220.817097051,
+      "annual": 144038649.8051644,
+      "interest_year1": 27723983.920079876,
+      "total_interest": 38077299.61032875,
+      "total_payment": 288077299.61032885,
+      "balloon": 0,
+      "seasonality_factor": 1.15
+     },
+     "existing": [],
+     "existing_count": 0,
+     "existing_annual": 0,
+     "existing_monthly": 0,
+     "total_annual": 144038649.8051644,
+     "total_monthly_avg": 12003220.817097036,
+     "annual_basis": "first_12_months",
+     "peak_monthly": 12003220.817097051,
+     "total_interest_year1": 27723983.920079876,
+     "schedule_combined": [
+      {
+       "month": 1,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 2,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 3,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 4,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 5,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 6,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 7,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 8,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 9,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 10,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 11,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 12,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 13,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 14,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 15,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 16,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 17,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 18,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 19,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 20,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 21,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 22,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 23,
+       "new_loan": 12003220.81709703,
+       "existing": 0,
+       "payment": 12003220.81709703
+      },
+      {
+       "month": 24,
+       "new_loan": 12003220.817097051,
+       "existing": 0,
+       "payment": 12003220.817097051
+      }
+     ],
+     "seasonality_factor": 1.15
+    },
+    "nominal": {
+     "recommended_nominal": 250000000,
+     "range_narrow": [
+      237500000,
+      262500000
+     ],
+     "binding_constraint": "plafon_diajukan",
+     "binding_code": "requested",
+     "binding_label": "plafon yang diajukan",
+     "capacity": {
+      "dscr_based": 270760661,
+      "ltv_based": 337500000,
+      "requested": 250000000
+     },
+     "dscr_at_recommended": 1.8050710719080754,
+     "dscr_target": 1.6666666666666667,
+     "repayment_share_max": 0.6,
+     "ltv_max": 0.75,
+     "rounding_used": 10000000,
+     "scheme": "annuity",
+     "income_used": 260000000,
+     "existing_annual_ds": 0,
+     "explanation": "Nominal dibatasi oleh plafon yang diajukan. Kapasitas bayar Rp 270.8 jt (cicilan maks. 60% arus kas), dukungan agunan Rp 337.5 jt (LTV maks. 75%), plafon diajukan Rp 250.0 jt. Plafon tidak melebihi batas terendah; agunan tidak menggantikan kapasitas bayar."
+    },
+    "segment": {
+     "key": "umkm_kecil",
+     "label": "UMKM Kecil",
+     "short": "UMKM Kecil",
+     "is_umkm": true,
+     "is_financial": false,
+     "cadence": "harian",
+     "statement_period": "harian",
+     "plafon": 250000000,
+     "criteria": [
+      "Plafon Rp 250.000.000 dalam rentang UMKM kecil."
+     ],
+     "treatment": {
+      "cadence": "harian",
+      "cadence_label": "Harian",
+      "statement_period": "harian",
+      "daily_cashflow": true,
+      "bank_template": false,
+      "required_reports": [
+       "Catatan kas harian",
+       "Rekening koran",
+       "Ringkasan penjualan harian"
+      ],
+      "dscr_target": 1.3,
+      "notes": [
+       "Prioritaskan arus kas HARIAN — cocokkan setoran/omzet per hari."
+      ]
+     }
+    },
+    "integrity": {
+     "status": "ok",
+     "status_label": "Laporan Seimbang",
+     "is_balanced": true,
+     "balanced": true,
+     "difference": 0,
+     "difference_pct": 0,
+     "tolerance_amount": 6000000,
+     "tolerance_pct": 1,
+     "totals": {
+      "assets": 600000000,
+      "liabilities": 200000000,
+      "equity": 400000000,
+      "liabilities_plus_equity": 600000000
+     },
+     "issues": [],
+     "checks": [
+      {
+       "code": "balance",
+       "label": "Aset = Liabilitas + Ekuitas",
+       "passed": true,
+       "actual": 600000000,
+       "expected": 600000000,
+       "difference": 0
+      },
+      {
+       "code": "current_assets_le_total",
+       "label": "Aset lancar ≤ Total aset",
+       "passed": true,
+       "current_assets": 250000000,
+       "total_assets": 600000000
+      },
+      {
+       "code": "current_liabilities_le_total",
+       "label": "Liabilitas jangka pendek ≤ Total liabilitas",
+       "passed": true,
+       "current_liabilities": 100000000,
+       "total_liabilities": 200000000
+      },
+      {
+       "code": "asset_parts_le_current",
+       "label": "Kas + Piutang + Persediaan ≤ Aset lancar",
+       "passed": true,
+       "parts_sum": 140000000,
+       "current_assets": 250000000,
+       "parts": [
+        "kas",
+        "piutang",
+        "persediaan"
+       ]
+      },
+      {
+       "code": "no_negative_core",
+       "label": "Nilai inti tidak negatif",
+       "passed": true
+      }
+     ],
+     "summary": "Laporan keuangan konsisten — neraca seimbang dan struktur wajar."
+    },
+    "daily_cashflow": {
+     "applicable": true,
+     "segment_key": "umkm_kecil",
+     "period": "harian",
+     "status": "sehat",
+     "assumptions": {
+      "working_days_per_month": 26,
+      "working_days_per_year": 312,
+      "weekend_factor": 0.6,
+      "transactions_per_day": 10
+     },
+     "daily": {
+      "revenue": 4807692.31,
+      "ocf": 833333.33,
+      "debt_service_set_aside": 461662.34,
+      "net": 371670.99,
+      "avg_transaction": 480769.23
+     },
+     "monthly": {
+      "revenue": 125000000,
+      "ocf": 21666666.67,
+      "debt_service": 12003220.82
+     },
+     "annual": {
+      "revenue": 1500000000,
+      "ocf": 260000000,
+      "debt_service": 144038649.8051644
+     },
+     "coverage_ratio": 1.81,
+     "weekly_weights": [
+      {
+       "day": "Senin",
+       "weekend": false,
+       "weight": 1,
+       "revenue": 4807692.31
+      },
+      {
+       "day": "Selasa",
+       "weekend": false,
+       "weight": 1,
+       "revenue": 4807692.31
+      },
+      {
+       "day": "Rabu",
+       "weekend": false,
+       "weight": 1,
+       "revenue": 4807692.31
+      },
+      {
+       "day": "Kamis",
+       "weekend": false,
+       "weight": 1,
+       "revenue": 4807692.31
+      },
+      {
+       "day": "Jumat",
+       "weekend": false,
+       "weight": 1,
+       "revenue": 4807692.31
+      },
+      {
+       "day": "Sabtu",
+       "weekend": true,
+       "weight": 0.6,
+       "revenue": 2884615.38
+      },
+      {
+       "day": "Minggu",
+       "weekend": true,
+       "weight": 0.6,
+       "revenue": 2884615.38
+      }
+     ],
+     "weekly_revenue": 29807692.31,
+     "notes": [
+      "Arus kas harian menutup 1.81x setoran angsuran.",
+      "Disarankan pencairan/monitoring bertahap mengikuti pola arus kas harian."
+     ]
+    },
+    "amount_recommendation": {
+     "gate": "disburse",
+     "gate_label": "Cairkan",
+     "tone": "success",
+     "headline": "Disarankan mencairkan Rp 250.000.000",
+     "recommended_amount": 250000000,
+     "range_narrow": [
+      237500000,
+      262500000
+     ],
+     "plafon_diajukan": 250000000,
+     "approved": true,
+     "binding_constraint": "plafon yang diajukan",
+     "segment_key": "umkm_kecil",
+     "integrity_warning": false,
+     "rationale": [
+      "Pembatas kapasitas: plafon yang diajukan.",
+      "DSCR pada nominal ini 1.81x.",
+      "Segmen UMKM Kecil — periodisitas laporan Harian.",
+      "Integritas laporan: Laporan keuangan konsisten — neraca seimbang dan struktur wajar."
+     ],
+     "conditions": []
+    },
+    "stress": {
+     "base": {
+      "dscr": 1.8050710719080754,
+      "icr": 20,
+      "ds_ratio": 0.55399480694294,
+      "altman_z": 5.449999999999999
+     },
+     "buffer_target": 1.2,
+     "scenarios": [
+      {
+       "id": "S1",
+       "label": "Omzet −20%",
+       "shocks": {
+        "penjualan": -0.2
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 120,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 10.45,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S2",
+       "label": "Omzet −35%",
+       "shocks": {
+        "penjualan": -0.35
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 97.5,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 8.837499999999999,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S3",
+       "label": "Harga input +15% (margin turun)",
+       "shocks": {
+        "hpp": 0.15
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 150,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 12.6,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S4",
+       "label": "Biaya impor/kurs +10%",
+       "shocks": {
+        "hpp": 0.1,
+        "beban_operasional": 0.05
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 150,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 12.6,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S5",
+       "label": "Piutang macet — kas turun 25% & piutang +60 hari",
+       "shocks": {
+        "kas": -0.25,
+        "piutang": 0.35,
+        "piutang_aging_hari": 60
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 20,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 5.449999999999999,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": 60,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S6",
+       "label": "Kombinasi moderat (omzet −20%, margin −2pp)",
+       "shocks": {
+        "penjualan": -0.2,
+        "margin_delta_pp": -2
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 117.6,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 10.318,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S7",
+       "label": "Bunga +300 bps (repricing)",
+       "shocks": {
+        "bunga_bps": 300
+       },
+       "dscr": 1.75288628604873,
+       "dscr_delta": -0.052184785859345384,
+       "icr": 20,
+       "ds_ratio": 0.570487662524961,
+       "altman_z": 5.449999999999999,
+       "ltv": 0.5555555555555556,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      },
+      {
+       "id": "S8",
+       "label": "Nilai agunan turun 20% (LTV naik)",
+       "shocks": {
+        "nilai_agunan": -0.2
+       },
+       "dscr": 1.8050710719080754,
+       "dscr_delta": 0,
+       "icr": 20,
+       "ds_ratio": 0.55399480694294,
+       "altman_z": 5.449999999999999,
+       "ltv": 0.6944444444444444,
+       "aging_piutang_hari": null,
+       "hard_violations": [],
+       "soft_notes": [],
+       "survives": true
+      }
+     ],
+     "worst": {
+      "id": "S7",
+      "label": "Bunga +300 bps (repricing)",
+      "shocks": {
+       "bunga_bps": 300
+      },
+      "dscr": 1.75288628604873,
+      "dscr_delta": -0.052184785859345384,
+      "icr": 20,
+      "ds_ratio": 0.570487662524961,
+      "altman_z": 5.449999999999999,
+      "ltv": 0.5555555555555556,
+      "aging_piutang_hari": null,
+      "hard_violations": [],
+      "soft_notes": [],
+      "survives": true
+     },
+     "survival_rate": 1,
+     "auto_min_survival": 0.375,
+     "limits_decision": false,
+     "passed": 8,
+     "failed": 0,
+     "recommendation": "Tahan terhadap hampir seluruh skenario; lanjutkan dengan covenant standar."
+    },
+    "covenant": {
+     "applicable": false,
+     "decision": "LAYAK",
+     "categories": {
+      "maintenance": 7,
+      "reporting": 2,
+      "affirmative": 4,
+      "negative": 5
+     },
+     "covenants": [
+      {
+       "code": "DSCR_MIN",
+       "category": "maintenance",
+       "label": "DSCR minimum",
+       "metric": "dscr",
+       "comparator": "gte",
+       "threshold": 1.15,
+       "unit": "x",
+       "description": "DSCR aktual wajib ≥ 1.15x setiap periode pelaporan."
+      },
+      {
+       "code": "DER_MAX",
+       "category": "maintenance",
+       "label": "DER maksimum",
+       "metric": "der",
+       "comparator": "lte",
+       "threshold": 3,
+       "unit": "x",
+       "description": "Debt-to-Equity Ratio wajib ≤ 3x."
+      },
+      {
+       "code": "LTV_MAX",
+       "category": "maintenance",
+       "label": "LTV maksimum",
+       "metric": "ltv",
+       "comparator": "lte",
+       "threshold": 0.8,
+       "unit": "x",
+       "description": "LTV wajib ≤ 80% dari nilai agunan."
+      },
+      {
+       "code": "ICR_MIN",
+       "category": "maintenance",
+       "label": "ICR minimum",
+       "metric": "icr",
+       "comparator": "gte",
+       "threshold": 1.5,
+       "unit": "x",
+       "description": "EBIT wajib ≥ 1.5x beban bunga."
+      },
+      {
+       "code": "CURRENT_RATIO_MIN",
+       "category": "maintenance",
+       "label": "Current ratio minimum",
+       "metric": "current_ratio",
+       "comparator": "gte",
+       "threshold": 1,
+       "unit": "x",
+       "description": "Aset lancar wajib ≥ 1x liabilitas jangka pendek."
+      },
+      {
+       "code": "OCF_POSITIF",
+       "category": "maintenance",
+       "label": "Arus kas operasional positif",
+       "metric": "ocf",
+       "comparator": "gt",
+       "threshold": 0,
+       "unit": "Rp",
+       "description": "Arus kas operasional wajib positif pada setiap periode pelaporan."
+      },
+      {
+       "code": "AGING_PIUTANG_MAX",
+       "category": "maintenance",
+       "label": "Aging piutang maksimum",
+       "metric": "aging_piutang_hari",
+       "comparator": "lte",
+       "threshold": 60,
+       "unit": "hari",
+       "description": "Rata-rata aging piutang wajib ≤ 60 hari."
+      },
+      {
+       "code": "LAPORAN_BULANAN",
+       "category": "reporting",
+       "label": "Laporan keuangan bulanan",
+       "frequency": "bulanan",
+       "withinDays": 15,
+       "description": "Menyerahkan laporan keuangan bulanan maksimal 15 hari setelah tutup buku."
+      },
+      {
+       "code": "LAPORAN_AUDITED",
+       "category": "reporting",
+       "label": "Laporan keuangan tahunan",
+       "frequency": "tahunan",
+       "withinDays": 120,
+       "description": "Menyerahkan laporan keuangan tahunan (diaudit KAP bila disyaratkan) maksimal 120 hari setelah tutup tahun buku."
+      },
+      {
+       "code": "AFF_IZIN_PAJAK",
+       "category": "affirmative",
+       "label": "Izin usaha & kepatuhan pajak",
+       "description": "Menjaga izin usaha (NIB, izin lingkungan bila wajib) tetap berlaku dan tidak memiliki tunggakan pajak."
+      },
+      {
+       "code": "AFF_ASURANSI",
+       "category": "affirmative",
+       "label": "Asuransi agunan dengan banker's clause",
+       "description": "Agunan fisik diasuransikan 100% dengan banker's clause untuk lender dan diperpanjang sebelum jatuh tempo."
+      },
+      {
+       "code": "AFF_NOTIFIKASI",
+       "category": "affirmative",
+       "label": "Pemberitahuan kejadian material",
+       "withinDays": 5,
+       "description": "Memberi tahu lender secara tertulis maksimal 5 hari kerja atas gugatan hukum, sengketa tenaga kerja, kerusakan aset material, atau pemeriksaan pajak."
+      },
+      {
+       "code": "AFF_REKENING",
+       "category": "affirmative",
+       "label": "Penerimaan usaha melalui rekening di lender",
+       "description": "Penerimaan penjualan dialirkan ke rekening operasional di lender agar omzet dapat dicocokkan dengan laporan keuangan."
+      },
+      {
+       "code": "NEG_AGUNAN",
+       "category": "negative",
+       "label": "Negative pledge",
+       "description": "Tidak menjaminkan atau memindahtangankan agunan fasilitas ini, maupun aset usaha lain, kepada pihak lain tanpa persetujuan tertulis lender."
+      },
+      {
+       "code": "NEG_UTANG_BARU",
+       "category": "negative",
+       "label": "Pembatasan utang baru",
+       "description": "Menambah utang berbunga baru wajib dengan persetujuan tertulis lender."
+      },
+      {
+       "code": "NEG_OWNERSHIP",
+       "category": "negative",
+       "label": "Larangan perubahan kepemilikan material",
+       "description": "Perubahan struktur kepemilikan/pengendalian tanpa persetujuan tertulis lender."
+      },
+      {
+       "code": "NEG_DIVIDEN",
+       "category": "negative",
+       "label": "Pembatasan dividen/prive",
+       "description": "Tidak membagikan dividen/prive, membeli kembali saham, atau melunasi pinjaman pemegang saham selama ada covenant yang dilanggar atau tunggakan angsuran."
+      },
+      {
+       "code": "NEG_MERGER",
+       "category": "negative",
+       "label": "Larangan merger & penjualan aset material",
+       "description": "Tidak melakukan merger, akuisisi, atau penjualan aset di luar kegiatan usaha normal tanpa persetujuan tertulis lender."
+      }
+     ],
+     "summary": "Covenant otomatis hanya aktif untuk keputusan LAYAK BERSYARAT (atau REVIEW bila diaktifkan).",
+     "breach_consequences": [
+      "Pelanggaran covenant merupakan cidera janji (wanprestasi) menurut perjanjian kredit.",
+      "Lender dapat membekukan sisa plafon yang belum ditarik.",
+      "Lender dapat mengenakan marjin penalti atau meminta agunan tambahan.",
+      "Lender dapat mempercepat jatuh tempo seluruh pinjaman.",
+      "Pelanggaran material menempatkan debitur di watchlist EWS dan tahap 2 PSAK 71 (SICR); kolektibilitas Lancar menjadi DPK."
+     ],
+     "status": {
+      "results": [
+       {
+        "code": "DSCR_MIN",
+        "label": "DSCR minimum",
+        "metric": "dscr",
+        "comparator": "gte",
+        "actual": 1.8050710719080754,
+        "threshold": 1.15,
+        "unit": "x",
+        "status": "compliant"
+       },
+       {
+        "code": "DER_MAX",
+        "label": "DER maksimum",
+        "metric": "der",
+        "comparator": "lte",
+        "actual": 0.5,
+        "threshold": 3,
+        "unit": "x",
+        "status": "compliant"
+       },
+       {
+        "code": "LTV_MAX",
+        "label": "LTV maksimum",
+        "metric": "ltv",
+        "comparator": "lte",
+        "actual": 0.5555555555555556,
+        "threshold": 0.8,
+        "unit": "x",
+        "status": "compliant"
+       },
+       {
+        "code": "ICR_MIN",
+        "label": "ICR minimum",
+        "metric": "icr",
+        "comparator": "gte",
+        "actual": 20,
+        "threshold": 1.5,
+        "unit": "x",
+        "status": "compliant"
+       },
+       {
+        "code": "CURRENT_RATIO_MIN",
+        "label": "Current ratio minimum",
+        "metric": "current_ratio",
+        "comparator": "gte",
+        "actual": 2.5,
+        "threshold": 1,
+        "unit": "x",
+        "status": "compliant"
+       },
+       {
+        "code": "OCF_POSITIF",
+        "label": "Arus kas operasional positif",
+        "metric": "ocf",
+        "comparator": "gt",
+        "actual": 260000000,
+        "threshold": 0,
+        "unit": "Rp",
+        "status": "compliant"
+       },
+       {
+        "code": "AGING_PIUTANG_MAX",
+        "label": "Aging piutang maksimum",
+        "status": "unknown",
+        "actual": null,
+        "threshold": 60
+       },
+       {
+        "code": "LAPORAN_BULANAN",
+        "label": "Laporan keuangan bulanan",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "LAPORAN_AUDITED",
+        "label": "Laporan keuangan tahunan",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "AFF_IZIN_PAJAK",
+        "label": "Izin usaha & kepatuhan pajak",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "AFF_ASURANSI",
+        "label": "Asuransi agunan dengan banker's clause",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "AFF_NOTIFIKASI",
+        "label": "Pemberitahuan kejadian material",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "AFF_REKENING",
+        "label": "Penerimaan usaha melalui rekening di lender",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "NEG_AGUNAN",
+        "label": "Negative pledge",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "NEG_UTANG_BARU",
+        "label": "Pembatasan utang baru",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "NEG_OWNERSHIP",
+        "label": "Larangan perubahan kepemilikan material",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "NEG_DIVIDEN",
+        "label": "Pembatasan dividen/prive",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       },
+       {
+        "code": "NEG_MERGER",
+        "label": "Larangan merger & penjualan aset material",
+        "status": "n/a",
+        "actual": null,
+        "threshold": null
+       }
+      ],
+      "breaches": 0,
+      "minors": 0,
+      "checked": 7,
+      "status": "compliant",
+      "ews_p20": "compliant"
+     }
+    },
+    "credit": {
+     "pd": {
+      "pd_12m": 0.00426,
+      "pd_lifetime": 0.046973,
+      "base_pd": 0.004733,
+      "profile_multiplier": 1,
+      "sector_multiplier": 0.9,
+      "coverage_penalty": 1,
+      "horizon_bulan": 12
+     },
+     "lgd": {
+      "lgd": 0.05,
+      "haircut": 0.2,
+      "recovery_months": 18,
+      "discount_factor": 0.843671,
+      "recovery_value": 303721452,
+      "coverage_ratio": 1,
+      "pg_uplift": 0
+     },
+     "ead": {
+      "ead": 250000000,
+      "ccf": 1,
+      "plafon": 250000000
+     },
+     "loss": {
+      "el_rate": 0.000213,
+      "ul_rate": 0.003256,
+      "el_amount": 53250,
+      "ul_amount": 814119,
+      "pd_lifetime": 0.046973,
+      "el_lifetime_rate": 0.002349,
+      "el_lifetime_amount": 587163
+     },
+     "pricing": {
+      "recommended_rate": 0.1366,
+      "breakeven_rate": 0.1052,
+      "hurdle_rate": 0.1058,
+      "build_up": {
+       "funding_cost": 0.085,
+       "expected_loss": 0.000213,
+       "opex": 0.02,
+       "capital_charge": 0.000358,
+       "target_margin": 0.03,
+       "tenor_spread": 0.001
+      },
+      "raroc": 7.51,
+      "raroc_pre_tax": 9.63,
+      "raroc_hurdle": 0.15,
+      "meets_hurdle": true,
+      "hurdle_actions": [],
+      "tax_rate": 0.22,
+      "clamped": false
+     },
+     "rwa": {
+      "exposure_class": "retail",
+      "exposure_class_label": "UMKM ritel (memenuhi kriteria)",
+      "counterparty_risk_weight": 0.75,
+      "risk_weight": 0.6015,
+      "ead": 250000000,
+      "ccf_undrawn": 0.4,
+      "net_exposure": 250000000,
+      "rwa": 150375000,
+      "capital_min": 12030000,
+      "capital_with_buffer": 15789375,
+      "notes": [
+       "Properti komersial: 247.500.000 dijamin (≤ 55% nilai properti) ber-RW 60%."
+      ],
+      "return_on_capital": 0.3878
+     }
+    },
+    "risk": {
+     "rating": 2,
+     "pefindo": {
+      "grade": "idAA",
+      "score_band": {
+       "grade": "idAA",
+       "min": 84,
+       "max_exclusive": 88
+      },
+      "caps": [],
+      "scale_mode": "pefindo",
+      "notch": 3,
+      "index": 2,
+      "category": "investment",
+      "category_label": "Investment Grade",
+      "label": "Kemampuan bayar sangat kuat",
+      "outlook": "positif",
+      "score": 87.2,
+      "pd": 0.00426,
+      "investment_grade": true,
+      "capped_by": null,
+      "definition": "Kemampuan memenuhi kewajiban finansial kuat; risiko gagal bayar relatif rendah."
+     },
+     "pricing": {
+      "recommended_rate": 0.1366,
+      "breakeven_rate": 0.1052,
+      "hurdle_rate": 0.1058,
+      "build_up": {
+       "funding_cost": 0.085,
+       "expected_loss": 0.000213,
+       "opex": 0.02,
+       "capital_charge": 0.000358,
+       "target_margin": 0.03,
+       "tenor_spread": 0.001
+      },
+      "raroc": 7.51,
+      "raroc_pre_tax": 9.63,
+      "raroc_hurdle": 0.15,
+      "meets_hurdle": true,
+      "hurdle_actions": [],
+      "tax_rate": 0.22,
+      "clamped": false
+     },
+     "legacy_pricing": {
+      "risk_rating": 2,
+      "base_rate": 0.12,
+      "recommended_rate": 0.0975,
+      "spread_per_grade": 0.0075
+     },
+     "pd": {
+      "pd_12m": 0.00426,
+      "pd_lifetime": 0.046973,
+      "base_pd": 0.004733,
+      "profile_multiplier": 1,
+      "sector_multiplier": 0.9,
+      "coverage_penalty": 1,
+      "horizon_bulan": 12
+     },
+     "lgd": {
+      "lgd": 0.05,
+      "haircut": 0.2,
+      "recovery_months": 18,
+      "discount_factor": 0.843671,
+      "recovery_value": 303721452,
+      "coverage_ratio": 1,
+      "pg_uplift": 0
+     },
+     "ead": {
+      "ead": 250000000,
+      "ccf": 1,
+      "plafon": 250000000
+     },
+     "loss": {
+      "el_rate": 0.000213,
+      "ul_rate": 0.003256,
+      "el_amount": 53250,
+      "ul_amount": 814119,
+      "pd_lifetime": 0.046973,
+      "el_lifetime_rate": 0.002349,
+      "el_lifetime_amount": 587163
+     }
+    },
+    "extra": {
+     "negative_ocf_periods": 0,
+     "arrears_days": 0,
+     "ltv": 0.5555555555555556,
+     "personal_guarantee": false
+    },
+    "coverage": 0.75,
+    "meta": {
+     "engine_version": "2.3.0",
+     "config_version": "2.0.0",
+     "config_hash": "eca3f27b",
+     "generated_at": "2026-10-22T07:21:51.411Z",
+     "resolved_for": {
+      "profile_key": "ukm_mapan",
+      "profile_label": "UKM Mapan",
+      "sector_key": "IDX-CONSUMER-NON-CYCLICALS",
+      "sector_pd_multiplier": 0.9,
+      "config_version": "2.0.0"
+     },
+     "ratios_available": 15,
+     "dscr_basis": "real:ocf",
+     "sme_correction": {
+      "enabled": false,
+      "factor": 0.78
+     },
+     "distress": [],
+     "bank_template": false,
+     "segment": "umkm_kecil",
+     "integrity_status": "ok",
+     "snapshot": {
+      "config_version": "2.0.0",
+      "config_hash": "eca3f27b",
+      "resolved_for": {
+       "profile_key": "ukm_mapan",
+       "profile_label": "UKM Mapan",
+       "sector_key": "IDX-CONSUMER-NON-CYCLICALS",
+       "sector_pd_multiplier": 0.9,
+       "config_version": "2.0.0"
+      },
+      "hard_rules": {
+       "dscr_min": 1.15,
+       "icr_min": 1.2,
+       "dti_max": 0.35,
+       "ds_ratio_max": 0.6,
+       "ltv_max": 0.75,
+       "ltv_max_with_guarantee": 0.95,
+       "altman_z_distress": 1.81,
+       "negative_ocf_periods": 2,
+       "arrears_days_max": 90
+      },
+      "thresholds": {
+       "layak": 75,
+       "layak_bersyarat": 60,
+       "review": 45
+      },
+      "nominal": {
+       "dscrTarget": 1.3,
+       "rounding": 50000000,
+       "rangeWidth": 0.05,
+       "maxTenorBulan": 120,
+       "minTenorBulan": 3
+      },
+      "debt_service": {
+       "basis": "ocf_then_ebitda_then_ebit",
+       "defaultScheme": "annuity",
+       "seasonalityFactor": 1.15,
+       "graceFactor": 1,
+       "ccf": 1
+      },
+      "integrity": {
+       "tolerancePct": 1
+      },
+      "segment": {
+       "mikroMax": 50000000,
+       "kecilMax": 500000000,
+       "menengahMax": 5000000000
+      },
+      "daily_cashflow": {
+       "workingDaysPerMonth": 26,
+       "weekendFactor": 0.6,
+       "transactionsPerDay": 10
+      },
+      "pricing": {
+       "fundingCost": 0.085,
+       "opexRate": 0.02,
+       "capitalChargeRate": 0.11,
+       "targetMargin": 0.03,
+       "taxRate": 0.22,
+       "rarocHurdle": 0.15,
+       "minRate": 0.08,
+       "maxRate": 0.36,
+       "tenorSpreadBpsPerYear": 5
+      },
+      "lgd": {
+       "base": 0.45,
+       "floor": 0.05,
+       "cap": 0.9,
+       "recoveryMonths": 18,
+       "recoveryMonthsByJenis": {
+        "deposito": 0,
+        "piutang": 6,
+        "persediaan": 6,
+        "kendaraan": 9,
+        "mesin": 12,
+        "tanah_bangunan": 18,
+        "lainnya": 12
+       },
+       "discountRate": 0.12,
+       "haircutByJenis": {
+        "deposito": 0.05,
+        "tanah_bangunan": 0.2,
+        "kendaraan": 0.4,
+        "mesin": 0.5,
+        "persediaan": 0.6,
+        "piutang": 0.65,
+        "lainnya": 0.55,
+        "tanpa_agunan": 1
+       },
+       "pgUplift": 0.05
+      },
+      "gap": {
+       "too_far": -30,
+       "materialThreshold": 30,
+       "neutralZone": 10,
+       "mainRatiosMinBreach": 3,
+       "sensitivityK": 0.5
+      },
+      "altman": {
+       "z_safe": 2.99,
+       "z_distress": 1.81
+      },
+      "covenant": {
+       "dscrMin": 1.15,
+       "derMax": 3,
+       "ltvMax": 0.8,
+       "agingPiutangMaxHari": 60,
+       "reportingMaxHari": 15,
+       "annualReportMaxHari": 120,
+       "notificationMaxHariKerja": 5,
+       "icrMin": 1.5,
+       "currentRatioMin": 1,
+       "ocfPositif": true,
+       "toleranceWarn": 0.1,
+       "includeForReview": false
+      },
+      "spreading": {
+       "enabled": true,
+       "reclassRestrictedCash": true,
+       "reclassRelatedPartyReceivables": true,
+       "reclassRelatedPartyDebtLt": true
+      },
+      "benchmark": {
+       "smeCorrection": {
+        "enabled": false,
+        "factor": 0.78
+       },
+       "tails": {
+        "lower": "p01",
+        "upper": "p99"
+       }
+      },
+      "ahp": null,
+      "rules": [
+       {
+        "key": "dscr_min",
+        "label": "DSCR minimum",
+        "metric": "dscr",
+        "op": "gte",
+        "unit": "x",
+        "enforcement": "hard",
+        "value": 1.15,
+        "description": "Arus kas operasi harus menutup seluruh debt service (pokok + bunga, termasuk utang eksisting)."
+       },
+       {
+        "key": "icr_min",
+        "label": "ICR minimum",
+        "metric": "icr",
+        "op": "gte",
+        "unit": "x",
+        "enforcement": "hard",
+        "value": 1.2,
+        "description": "EBIT harus menutup seluruh beban bunga (utang baru + eksisting)."
+       },
+       {
+        "key": "dti_max",
+        "label": "DTI maksimum",
+        "metric": "dti",
+        "op": "lte",
+        "unit": "%",
+        "enforcement": "soft",
+        "value": 0.35,
+        "description": "Total debt service tahunan dibagi penjualan tahunan."
+       },
+       {
+        "key": "ds_ratio_max",
+        "label": "Debt Service Ratio maksimum",
+        "metric": "ds_ratio",
+        "op": "lte",
+        "unit": "%",
+        "enforcement": "soft",
+        "value": 0.6,
+        "description": "Total debt service tahunan dibagi arus kas operasi tahunan (kebalikan DSCR, lebih mudah dibaca)."
+       },
+       {
+        "key": "ltv_max",
+        "label": "LTV maksimum",
+        "metric": "ltv",
+        "op": "lte",
+        "unit": "x",
+        "enforcement": "soft",
+        "value": 0.75,
+        "description": "Plafon terhadap nilai agunan; tanpa personal guarantee memakai batas ini."
+       },
+       {
+        "key": "ltv_max_with_guarantee",
+        "label": "LTV maksimum (dengan personal guarantee)",
+        "metric": "ltv",
+        "op": "lte",
+        "unit": "x",
+        "enforcement": "watch",
+        "value": 0.95,
+        "description": "Batas LTV yang diizinkan bila ada personal guarantee."
+       },
+       {
+        "key": "altman_z_distress",
+        "label": "Altman Z — batas distress",
+        "metric": "altman_z",
+        "op": "gt",
+        "unit": "Z",
+        "enforcement": "soft",
+        "value": 1.81,
+        "description": "Z di bawah/atau sama dengan nilai ini = zona distress."
+       },
+       {
+        "key": "negative_ocf_periods",
+        "label": "Arus kas operasi negatif berturut-turut",
+        "metric": "negative_ocf_periods",
+        "op": "lt",
+        "unit": "periode",
+        "enforcement": "hard",
+        "value": 2,
+        "description": "Jumlah periode negatif berurutan yang ditoleransi."
+       },
+       {
+        "key": "arrears_days_max",
+        "label": "Tunggakan maksimum",
+        "metric": "arrears_days",
+        "op": "lte",
+        "unit": "hari",
+        "enforcement": "hard",
+        "value": 90,
+        "description": "Tunggakan berjalan pada fasilitas yang sudah ada."
+       }
+      ]
+     }
+    }
+   },
+   "saved_at": "2026-10-22T07:21:51.413Z"
+  }
+ ],
+ "monitoring": [
+  {
+   "period": "2026-05",
+   "note": "Penjualan stabil, angsuran tepat waktu.",
+   "params": {
+    "P1_dscr": 1.62,
+    "P4_ocf": "positif",
+    "P6_omzet_yoy_pct": 6,
+    "P11_days_late": 0,
+    "P20_covenant": "compliant"
+   },
+   "ews_level": "NORMAL",
+   "collectibility": "Lancar",
+   "recommended_action": "MONITORING RUTIN",
+   "escalate_to": null,
+   "judgements": [
+    {
+     "severity": "NORMAL",
+     "message": "🟢 NORMAL — Tidak ada sinyal risiko. Lanjutkan monitoring rutin."
+    }
+   ],
+   "signals": [],
+   "id": "demo_mon_darto_2026-05",
+   "borrower_id": "demo_fasilitas_bakso_darto",
+   "created_at": "2026-05-31T09:00:00.000Z"
+  },
+  {
+   "period": "2026-07",
+   "note": "Omzet turun setelah jalan depan warung diperbaiki; telat bayar 9 hari.",
+   "params": {
+    "P1_dscr": 1.32,
+    "P4_ocf": "positif",
+    "P6_omzet_yoy_pct": -12,
+    "P11_days_late": 9,
+    "P10_cash_change_pct": -10,
+    "P20_covenant": "compliant"
+   },
+   "ews_level": "WARNING",
+   "collectibility": "Dalam Perhatian Khusus",
+   "recommended_action": "REVIEW & MINTA DATA TERBARU",
+   "escalate_to": "Analis Senior",
+   "judgements": [
+    {
+     "severity": "NORMAL",
+     "message": "🟢 NORMAL — Tidak ada sinyal risiko. Lanjutkan monitoring rutin."
+    }
+   ],
+   "signals": [
+    {
+     "param": "P11_days_late",
+     "code": "P11",
+     "value": 9,
+     "threshold": 7,
+     "severity": "WARNING"
+    }
+   ],
+   "id": "demo_mon_darto_2026-07",
+   "borrower_id": "demo_fasilitas_bakso_darto",
+   "created_at": "2026-07-31T09:00:00.000Z"
+  },
+  {
+   "period": "2026-09",
+   "note": "Tunggakan 45 hari. Debitur kooperatif; pengunjung belum pulih.",
+   "params": {
+    "P1_dscr": 0.78,
+    "P4_ocf": "negatif_1_periode",
+    "P6_omzet_yoy_pct": -32,
+    "P11_days_late": 45,
+    "P10_cash_change_pct": -41,
+    "P12_response_days": 9,
+    "P20_covenant": "minor"
+   },
+   "ews_level": "CRITICAL",
+   "collectibility": "Dalam Perhatian Khusus",
+   "recommended_action": "RESTRUKTURISASI / PENAGIHAN",
+   "escalate_to": "Manajer Risiko",
+   "judgements": [
+    {
+     "severity": "CRITICAL",
+     "message": "🔴 JANGAN LANJUT — Borrower tidak mampu bayar cicilan. Hentikan pencairan bertahap, ajukan restrukturisasi."
+    },
+    {
+     "severity": "CRITICAL",
+     "message": "🔴 BAHAYA — Kemampuan bayar menipis. Minta laporan keuangan terbaru & jadwalkan kunjungan."
+    },
+    {
+     "severity": "CRITICAL",
+     "message": "🔴 BAHAYA — Tunggakan > 30 hari. Kirim surat peringatan, siapkan penagihan."
+    },
+    {
+     "severity": "WATCH",
+     "message": "🟡 PANTAU — Ada indikasi tekanan likuiditas/operasional."
+    }
+   ],
+   "signals": [
+    {
+     "param": "P1_dscr",
+     "code": "P1",
+     "value": 0.78,
+     "threshold": 1,
+     "severity": "CRITICAL"
+    },
+    {
+     "param": "P4_ocf",
+     "code": "P4",
+     "value": "negatif_1_periode",
+     "threshold": "negatif_1_periode",
+     "severity": "WARNING"
+    },
+    {
+     "param": "P6_omzet_yoy_pct",
+     "code": "P6",
+     "value": -32,
+     "threshold": -20,
+     "severity": "WARNING"
+    },
+    {
+     "param": "P10_cash_change_pct",
+     "code": "P10",
+     "value": -41,
+     "threshold": -30,
+     "severity": "WARNING"
+    },
+    {
+     "param": "P11_days_late",
+     "code": "P11",
+     "value": 45,
+     "threshold": 30,
+     "severity": "CRITICAL"
+    },
+    {
+     "param": "P12_response_days",
+     "code": "P12",
+     "value": 9,
+     "threshold": 7,
+     "severity": "WARNING"
+    },
+    {
+     "param": "P20_covenant",
+     "code": "P20",
+     "value": "minor",
+     "threshold": "minor",
+     "severity": "WARNING"
+    }
+   ],
+   "id": "demo_mon_darto_2026-09",
+   "borrower_id": "demo_fasilitas_bakso_darto",
+   "created_at": "2026-09-30T09:00:00.000Z"
+  }
+ ]
+}

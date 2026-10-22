@@ -1,0 +1,41 @@
+# Panduan Uji Coba Pengguna (Tahap 3)
+
+Tujuan: membuktikan target di PRD bagian *Ukuran keberhasilan* dengan **10 pemilik UMKM** dan **5 petugas kredit pemula**.
+Durasi per peserta ±20 menit. Satu fasilitator, satu pencatat.
+
+## Persiapan
+
+- Buka dashboard di HP atau laptop peserta (tampilan **Sederhana**). Hapus data lama: Portofolio → pastikan kosong (atau pakai jendela privat).
+- Siapkan stopwatch dan lembar catatan (tabel di bawah).
+- Jangan menjelaskan istilah apa pun selama tugas berlangsung. Catat setiap pertanyaan peserta.
+
+## Tugas untuk pemilik UMKM (peran "Pemohon")
+
+| # | Tugas | Yang diukur | Lulus bila |
+| --- | --- | --- | --- |
+| 1 | "Ajukan pinjaman untuk usaha Anda. Kirim laporan keuangan apa adanya" (berkas sendiri, atau kartu data + "Pakai contoh laporan Bu Sari") | Selesai tanpa bantuan | Pengajuan terkirim tanpa dibantu |
+| 2 | Fasilitator (sebagai petugas) mengirim penawaran Rp 380 jt, cicil harian. Tanya: "Berapa yang harus Anda bayar setiap hari? Berapa total yang dibayar?" | Paham penawaran, waktu | Menjawab ±Rp 431 rb/hari dan ±Rp 466 jt ≤ 1 menit |
+| 3 | Fasilitator meminta perbaikan "Lampirkan rekening koran 6 bulan". Tanya: "Apa yang harus Anda lakukan?" | Paham langkah berikutnya | Menemukan tombol "Perbaiki pengajuan" dan melampirkan dokumennya |
+| 4 | Survei 1–5: "Tampilan ini mudah dimengerti" | Kepuasan | Rata-rata ≥ 4 |
+
+## Tugas untuk petugas kredit pemula (peran "Petugas bank")
+
+| # | Tugas | Lulus bila |
+| --- | --- | --- |
+| 1 | "Muat contoh pengajuan Bu Sari". Jelaskan hasilnya kepada fasilitator yang berperan sebagai nasabah, tanpa membuka kompendium | Menyebut status, alasan, saran jumlah, dan catatan "bukan rating resmi PEFINDO" |
+| 2 | Centang dokumen → kirim penawaran Rp 380 jt cicil harian → (fasilitator menerima sebagai pemohon) → lengkapi syarat → cairkan | Paham kenapa pencairan pertama Rp 165 jt |
+| 3 | Portofolio → "Muat contoh Pak Darto". Tanya: "Apa yang harus Anda lakukan minggu ini?" | Menyebut kunjungan & keringanan cicilan, lapor manajer risiko |
+| 4 | Pilih keringanan yang disarankan dan jelaskan ke nasabah | Menyebut 33 bulan, cicilan ±Rp 7,5 jt |
+| 5 | Survei 1–5 seperti di atas | Rata-rata ≥ 4 |
+
+## Lembar catatan
+
+| Peserta | Peran | Tugas | Waktu (detik) | Lulus? | Pertanyaan / kebingungan | Kata yang tidak dipahami |
+| --- | --- | --- | --- | --- | --- | --- |
+| P01 | UMKM | 2 | | | | |
+
+## Setelah uji coba
+
+1. Rekap per target PRD: paham hasil (≥ 8/10), waktu (≤ 1 menit), selesai sendiri (≥ 80%), petugas bisa menjelaskan (≥ 4/5), kepuasan (≥ 4).
+2. Kumpulkan **kata yang tidak dipahami** → perbaiki kalimat di `src/services/plain.js`, `src/services/labels.js`, dan `src/app/pages/` (bukan di mesin).
+3. Jalankan `npm test` — tes "hasil tetap sama" memastikan perubahan kata tidak mengubah angka.

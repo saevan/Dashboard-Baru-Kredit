@@ -1,0 +1,11 @@
+{
+     "cleanUrls": true,
+     "trailingSlash": false,
+     "installCommand": "echo \"static site: no runtime dependencies to install\"",
+     "headers": [
+          { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] },
+          { "source": "/", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+          { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+          { "source": "/src/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] }
+     ]
+}
