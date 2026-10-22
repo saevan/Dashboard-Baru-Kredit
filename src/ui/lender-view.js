@@ -10,7 +10,8 @@ import {
      PERIODICITY_OPTIONS,
      periodUnit,
      effectiveBorrower,
-     loanCard
+     loanCard,
+     reviewState
 } from '../simple/loans.js';
 import { DOCUMENTS, confidenceView, gateView, financeStatus, financeLabel } from '../simple/intake.js';
 import {
@@ -85,6 +86,7 @@ function renderClosedOrWaiting(record, { lengkap, ui }) {
           ditolak_pemohon: `Pemohon menolak penawaran${record.decline_reason ? `: ${record.decline_reason}` : '.'}`,
           lunas: 'Pinjaman sudah lunas.'
      };
+     if (!record.review?.scored_at && !record.offer) return `<p class="reason">${esc(lines[record.status] || '')}</p>`;
      const { result, atSuggested } = analyzeWithSuggestion(effectiveBorrower(record));
      return `<p class="reason">${esc(lines[record.status] || '')}</p>
           <details class="result-box"${ui.resultOpen ? ' open' : ''}><summary>Lihat hasil analisis</summary>
@@ -92,23 +94,62 @@ function renderClosedOrWaiting(record, { lengkap, ui }) {
           </details>`;
 }
 
-/** Pemeriksaan pengajuan baru: 4 bagian lalu keputusan. */
+/** Langkah terkunci sampai langkah sebelumnya selesai. */
+const locked = (text) => `<p class="locked">🔒 ${esc(text)}</p>`;
+
+/**
+ * Pemeriksaan pengajuan baru, bertahap seperti aplikasi asal:
+ * 1 data & dokumen → 2 wawancara → 3 hasil analisis → 4 keputusan.
+ * Hasil dan penawaran baru muncul setelah petugas menilai.
+ */
 function renderReview(record, { lengkap, ui, sim }) {
      const b = record.borrower;
      const k = b.keuangan || {};
      const fin = financeStatus(k);
      const conf = confidenceView(record);
-     const eff = effectiveBorrower(record);
-     const { result, atSuggested } = analyzeWithSuggestion(eff);
-     const v = toPlain(result, atSuggested);
-     const gate = gateView(result, conf);
+     const r = reviewState(record);
      const docs = record.documents || [];
      const id = esc(record.id);
-     const sugAmount = v.amount.suggested > 0 ? Math.min(v.amount.suggested, v.amount.requested) : v.amount.requested;
-     const rate = result.risk?.pricing?.recommended_rate ?? b.bunga_tahunan ?? 0.14;
      const finKeys = Object.keys(k).filter((key) => Number.isFinite(k[key]) && !['beban_bunga_lain', 'arrears_days', 'ocf_negatif_periode'].includes(key));
+     const pendingDocs = docs.filter((d) => !d.verified).length;
+     const stepState = (done, current) => (done ? 'done' : current ? 'current' : 'todo');
+
+     let resultHtml = locked('Hasil muncul setelah dokumen diperiksa dan wawancara lengkap.');
+     let decisionHtml = '';
+     let v = null;
+     if (r.scored) {
+          const { result, atSuggested } = analyzeWithSuggestion(effectiveBorrower(record));
+          v = toPlain(result, atSuggested);
+          const gate = gateView(result, conf);
+          const sugAmount = v.amount.suggested > 0 ? Math.min(v.amount.suggested, v.amount.requested) : v.amount.requested;
+          const rate = result.risk?.pricing?.recommended_rate ?? b.bunga_tahunan ?? 0.14;
+          resultHtml = `${renderResultCard({ result, atSuggested, lengkap, detailOpen: ui.detailOpen, sim, keuangan: k })}
+               <p class="pill-line"><span class="pill tone-${gate.pass ? 'hijau' : gate.autoReject ? 'merah' : 'kuning'}">${gate.pass ? 'Lolos gerbang' : 'Keputusan manual'}</span> ${esc(gate.sentence)}</p>`;
+          decisionHtml = `<form class="card form" data-offer="${id}">
+               <h3>Kirim penawaran</h3>
+               <div class="field-grid">
+                    <label class="field" for="o-amount"><span class="field-label">Jumlah</span>
+                         <span class="money"><span class="money-prefix">Rp</span><input id="o-amount" name="amount" type="text" inputmode="numeric" value="${esc(fmtInput(sugAmount))}"></span>
+                         <span class="field-hint">Bawaan: jumlah aman dari sistem</span></label>
+                    <label class="field" for="o-tenor"><span class="field-label">Lama (bulan)</span><input id="o-tenor" name="tenor" type="number" min="1" max="120" value="${esc(b.tenor_bulan)}"></label>
+                    <label class="field" for="o-rate"><span class="field-label">Bunga per tahun (%)</span><input id="o-rate" name="rate" type="number" min="0" max="60" step="0.01" value="${esc(Math.round(rate * 10000) / 100)}">
+                         <span class="field-hint">Bawaan: bunga berbasis risiko ${esc(pct(rate, 2))}</span></label>
+                    <label class="field" for="o-period"><span class="field-label">Cicil setiap</span><select id="o-period" name="periodicity">${options(PERIODICITY_OPTIONS, b.periode_angsuran || 'bulanan')}</select>
+                         <span class="field-hint">Pilihan pemohon: ${esc(periodUnit(b.periode_angsuran))}</span></label>
+               </div>
+               <button type="submit" class="btn primary">Kirim penawaran ke pemohon</button>
+          </form>`;
+     }
+
      return `
-     <h2>1. Data dari pemohon</h2>
+     <ol class="steps review-steps">
+          <li class="step-${stepState(r.verified, !r.verified)}"><span class="dot" aria-hidden="true"></span><span>Periksa data & dokumen</span></li>
+          <li class="step-${stepState(r.verified && r.interviewDone && r.scored, r.verified && !r.scored)}"><span class="dot" aria-hidden="true"></span><span>Wawancara</span></li>
+          <li class="step-${stepState(r.scored, false)}"><span class="dot" aria-hidden="true"></span><span>Hasil analisis</span></li>
+          <li class="step-${stepState(false, r.scored)}"><span class="dot" aria-hidden="true"></span><span>Keputusan</span></li>
+     </ol>
+
+     <h2>1. Periksa data & dokumen</h2>
      <dl class="summary">
           <div><dt>Bidang usaha</dt><dd>${esc(label(SECTOR_OPTIONS, b.sektor))}</dd></div>
           <div><dt>Kondisi usaha</dt><dd>${esc(label(PROFILE_OPTIONS, b.profil_company))}${b.bisnis_manajemen?.track_record_tahun != null ? ` · ${esc(b.bisnis_manajemen.track_record_tahun)} tahun` : ''}</dd></div>
@@ -121,7 +162,7 @@ function renderReview(record, { lengkap, ui, sim }) {
      <div class="table-wrap"><table class="wide"><tbody>${finKeys.map((key) => `<tr><td>${esc(financeLabel(key))}</td><td class="num">${esc(rupiah(k[key]))}</td></tr>`).join('')}</tbody></table></div>
      <p class="small ${fin.integrity === 'ok' ? 'muted' : 'warn-text'}">${esc(fin.complete ? fin.integritySentence : `Belum lengkap: ${fin.missing.join(', ')}.`)}</p>
 
-     <h2>2. Periksa dokumen</h2>
+     <h3 class="sub">Dokumen</h3>
      <p class="small muted">Cocokkan berkas dengan dokumen asli, lalu centang yang sudah benar.</p>
      <ul class="doc-list">${DOCUMENTS.map((m) => {
           const doc = docs.find((x) => x.key === m.key);
@@ -135,37 +176,32 @@ function renderReview(record, { lengkap, ui, sim }) {
           <label class="field" for="l-runway"><span class="field-label">Kas cukup untuk berapa bulan?</span><span class="field-hint">Dari rekening koran; kosong = dinilai netral</span>
                <input id="l-runway" type="number" min="0" data-lender-number="bisnis_manajemen.cash_runway_bulan" data-id="${id}" value="${esc(b.bisnis_manajemen?.cash_runway_bulan ?? '')}"></label>
      </div>
+     ${r.verified
+          ? '<p class="ok-text">✓ Pemeriksaan selesai. Mengubah centang atau angka di atas akan membuka ulang pemeriksaan.</p>'
+          : `<div class="step-actions">${pendingDocs ? `<p class="warn-text small">${pendingDocs} berkas belum dicentang; keyakinan data ikut turun.</p>` : ''}
+               <button type="button" class="btn primary" data-action="finish-verify" data-id="${id}">Selesai memeriksa, lanjut wawancara</button></div>`}
 
-     <h2>3. Wawancara</h2>
-     <p class="small muted">Nilai setelah berbincang dengan pemilik usaha. Yang belum dinilai memakai nilai bawaan sistem.</p>
+     <h2>2. Wawancara</h2>
+     ${!r.verified ? locked('Selesaikan pemeriksaan data & dokumen dulu.') : `
+     <p class="small muted">Nilai setelah berbincang dengan pemilik usaha. Semua pertanyaan wajib dijawab. (${r.answered} dari ${r.totalQuestions} dijawab)</p>
      <div class="interview">${INTERVIEW_QUESTIONS.map((q) => {
           const current = record.interview?.[q.key] ?? null;
-          return `<fieldset class="field"><legend class="field-label">${esc(q.label)}</legend><div class="scale">
-               <label class="scale-opt"><input type="radio" name="iv-${q.key}" data-lender-interview="${q.key}" data-id="${id}" value=""${current === null ? ' checked' : ''}><span>Belum dinilai</span></label>
-               ${INTERVIEW_SCALE.map((s) => `<label class="scale-opt"><input type="radio" name="iv-${q.key}" data-lender-interview="${q.key}" data-id="${id}" value="${s.value}"${current === s.value ? ' checked' : ''}><span>${esc(s.label)}</span></label>`).join('')}
+          return `<fieldset class="field"><legend class="field-label">${esc(q.label)}${current === null ? ' <span class="warn-text small">belum dijawab</span>' : ''}</legend><div class="scale">
+               ${INTERVIEW_SCALE.map((sc) => `<label class="scale-opt"><input type="radio" name="iv-${q.key}" data-lender-interview="${q.key}" data-id="${id}" value="${sc.value}"${current === sc.value ? ' checked' : ''}><span>${esc(sc.label)}</span></label>`).join('')}
           </div></fieldset>`;
      }).join('')}</div>
+     ${r.scored
+          ? '<p class="ok-text">✓ Hasil sudah dihitung. Mengubah jawaban akan menghitung ulang.</p>'
+          : `<div class="step-actions"><button type="button" class="btn primary" data-action="score" data-id="${id}"${r.interviewDone ? '' : ' disabled'}>Hitung hasil analisis</button>
+               ${r.interviewDone ? '' : `<p class="muted small">Jawab ${r.totalQuestions - r.answered} pertanyaan lagi.</p>`}</div>`}`}
 
-     <h2>4. Hasil analisis</h2>
-     ${renderResultCard({ result, atSuggested, lengkap, detailOpen: ui.detailOpen, sim, keuangan: k })}
-     <p class="pill-line"><span class="pill tone-${gate.pass ? 'hijau' : gate.autoReject ? 'merah' : 'kuning'}">${gate.pass ? 'Lolos gerbang' : 'Keputusan manual'}</span> ${esc(gate.sentence)}</p>
+     <h2>3. Hasil analisis</h2>
+     ${resultHtml}
 
-     <h2>5. Keputusan</h2>
+     <h2>4. Keputusan</h2>
+     ${decisionHtml ? '' : locked('Penawaran bisa dikirim setelah hasil analisis dihitung. Permintaan perbaikan dan penolakan bisa kapan saja.')}
      <div class="decisions">
-          <form class="card form" data-offer="${id}">
-               <h3>Kirim penawaran</h3>
-               <div class="field-grid">
-                    <label class="field" for="o-amount"><span class="field-label">Jumlah</span>
-                         <span class="money"><span class="money-prefix">Rp</span><input id="o-amount" name="amount" type="text" inputmode="numeric" value="${esc(fmtInput(sugAmount))}"></span>
-                         <span class="field-hint">Bawaan: jumlah aman dari sistem</span></label>
-                    <label class="field" for="o-tenor"><span class="field-label">Lama (bulan)</span><input id="o-tenor" name="tenor" type="number" min="1" max="120" value="${esc(b.tenor_bulan)}"></label>
-                    <label class="field" for="o-rate"><span class="field-label">Bunga per tahun (%)</span><input id="o-rate" name="rate" type="number" min="0" max="60" step="0.01" value="${esc(Math.round(rate * 10000) / 100)}">
-                         <span class="field-hint">Bawaan: bunga berbasis risiko ${esc(pct(rate, 2))}</span></label>
-                    <label class="field" for="o-period"><span class="field-label">Cicil setiap</span><select id="o-period" name="periodicity">${options(PERIODICITY_OPTIONS, b.periode_angsuran || 'bulanan')}</select>
-                         <span class="field-hint">Pilihan pemohon: ${esc(periodUnit(b.periode_angsuran))}</span></label>
-               </div>
-               <button type="submit" class="btn primary">Kirim penawaran ke pemohon</button>
-          </form>
+          ${decisionHtml}
           <form class="card form" data-fix="${id}">
                <h3>Minta perbaikan</h3>
                <label class="field" for="fix-note"><span class="field-label">Pesan untuk pemohon</span>
@@ -184,7 +220,7 @@ function defaultFixNote(record, v) {
      const parts = [];
      if (missingDocs.length) parts.push(`Lampirkan ${missingDocs.join(', ')}.`);
      if (fin.missing.length) parts.push(`Lengkapi angka laporan: ${fin.missing.join(', ')}.`);
-     if (!parts.length && v.fixes[0]) parts.push(v.fixes[0].text);
+     if (!parts.length && v?.fixes[0]) parts.push(v.fixes[0].text);
      return parts.join(' ');
 }
 

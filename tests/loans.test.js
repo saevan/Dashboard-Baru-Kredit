@@ -9,6 +9,11 @@ import {
      requestFix,
      resubmit,
      verifyDocument,
+     finishVerification,
+     scoreApplication,
+     setInterview,
+     setReviewedField,
+     reviewState,
      borrowerTimeline,
      rejectLoan,
      toggleCondition,
@@ -31,19 +36,30 @@ import { analyzeLoan } from '../src/simple/loans.js';
 const NOW = new Date('2026-10-01T00:00:00Z');
 
 const submitSari = () => createLoan({ borrower: demoBuSari(), documents: demoDocuments(), consent: true, now: NOW });
+const ALL_GOOD = { model: 4, pasar: 4, pengalaman: 4, bayar: 4, kelola: 4, tren: 4, industri: 4 };
+
+/** Pemeriksaan lengkap oleh petugas: centang dokumen → selesai periksa → wawancara → hitung. */
+function scoredSari() {
+     let loan = submitSari();
+     for (const d of loan.documents) loan = verifyDocument(loan, d.key, true, NOW);
+     loan = finishVerification(loan, { now: NOW });
+     for (const [k, v] of Object.entries(ALL_GOOD)) loan = setInterview(loan, k, v);
+     return scoreApplication(loan, { now: NOW });
+}
 
 function approvedSari(amount = 380_000_000, periodicity = 'bulanan') {
-     const offered = makeOffer(submitSari(), { amount, tenor: 36, rate: 0.14, periodicity, now: NOW });
+     const offered = makeOffer(scoredSari(), { amount, tenor: 36, rate: 0.14, periodicity, now: NOW });
      return acceptOffer(offered, { now: NOW });
 }
 
-test('pengajuan baru: wajib persetujuan; kartu petugas berisi ringkasan mesin', () => {
+test('pengajuan baru: wajib persetujuan; ringkasan mesin baru tampil setelah dinilai', () => {
      assert.throws(() => createLoan({ borrower: demoBuSari(), consent: false }), /persetujuan/);
      const loan = submitSari();
      assert.equal(loan.status, 'diajukan');
      const card = loanCard(loan);
-     assert.equal(card.headline, 'Pengajuan baru');
-     assert.match(card.sentence, /perlu ditinjau \(idAA\)\. Saran Rp 380 jt/);
+     assert.equal(card.headline, 'Belum dinilai');
+     assert.equal(card.sentence, 'Langkah berikutnya: periksa data & dokumen.');
+     assert.match(loanCard(scoredSari()).sentence, /perlu ditinjau \(idAA\)\. Saran Rp 380 jt/);
      assert.deepEqual(borrowerTimeline('diajukan').map((s) => s.state), ['done', 'current', 'todo', 'todo', 'todo']);
 });
 
@@ -61,15 +77,15 @@ test('perbaikan: petugas minta, pemohon kirim ulang; berkas diganti = verifikasi
 });
 
 test('penawaran: cicilan harian/mingguan/bulanan dari mesin; pemohon menerima atau menolak', () => {
-     const harian = makeOffer(submitSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'harian', now: NOW });
+     const harian = makeOffer(scoredSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'harian', now: NOW });
      assert.equal(harian.status, 'ditawarkan');
      assert.equal(harian.offer.periodicity, 'harian');
      assert.equal(harian.offer.periods, 1080);
      assert.ok(Math.abs(harian.offer.per_period * 1080 - harian.offer.monthly * 36) < 50);
-     const mingguan = makeOffer(submitSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'mingguan', now: NOW });
+     const mingguan = makeOffer(scoredSari(), { amount: 380_000_000, tenor: 36, rate: 0.14, periodicity: 'mingguan', now: NOW });
      assert.equal(mingguan.offer.periods, 156);
      assert.equal(mingguan.offer.decision, 'LAYAK');
-     assert.throws(() => makeOffer(submitSari(), { amount: 0, tenor: 36, rate: 0.14 }));
+     assert.throws(() => makeOffer(scoredSari(), { amount: 0, tenor: 36, rate: 0.14 }));
      assert.equal(acceptOffer(harian).status, 'diterima');
      assert.equal(declineOffer(harian, { reason: 'Bunga terlalu tinggi' }).status, 'ditolak_pemohon');
      assert.throws(() => acceptOffer(submitSari()), /tidak bisa/);
@@ -174,4 +190,26 @@ test('sinyal EWS → kalimat awam', () => {
 
 test('pemantauan hanya untuk pinjaman yang sudah cair', () => {
      assert.throws(() => addMonitoring(approvedSari(), { period: '2026-10' }), /sudah cair/);
+});
+
+test('petugas harus menilai dulu: periksa dokumen → wawancara lengkap → hitung → baru penawaran', () => {
+     let loan = submitSari();
+     assert.equal(loanCard(loan).headline, 'Belum dinilai');
+     assert.doesNotMatch(loanCard(loan).sentence, /idAA/);
+     assert.throws(() => makeOffer(loan, { amount: 380_000_000, tenor: 36, rate: 0.14 }), /Hitung hasil/);
+     assert.throws(() => scoreApplication(loan), /pemeriksaan dokumen/);
+     loan = finishVerification(loan, { now: NOW });
+     loan = setInterview(loan, 'model', 4);
+     assert.throws(() => scoreApplication(loan), /1 dari 7/);
+     for (const [k, v] of Object.entries(ALL_GOOD)) loan = setInterview(loan, k, v);
+     loan = scoreApplication(loan, { now: NOW });
+     assert.equal(reviewState(loan).scored, true);
+     assert.equal(loan.review.score.grade, 'idAA');
+     assert.equal(loan.review.score.finalScore, 87.2);
+     assert.equal(loanCard(loan).headline, 'Siap diputuskan');
+     // Mengubah jawaban membatalkan hasil; mengubah data periksa membatalkan semuanya.
+     assert.equal(reviewState(setInterview(loan, 'tren', 3)).scored, false);
+     const edited = setReviewedField(loan, 'keuangan.arrears_days', 10);
+     assert.deepEqual([reviewState(edited).verified, reviewState(edited).scored], [false, false]);
+     assert.equal(reviewState(verifyDocument(loan, 'identitas', false)).verified, false);
 });

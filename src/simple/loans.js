@@ -11,7 +11,7 @@
  */
 
 import { analyze } from './analyze.js';
-import { applyInterview } from './form-schema.js';
+import { applyInterview, INTERVIEW_QUESTIONS } from './form-schema.js';
 import { emptyBorrower } from '../core/engine.js';
 import { buildConditionsPrecedent, conditionsStatus, disbursementBlocker } from '../core/disbursement.js';
 import { evaluateMonitoring, EWS_PARAMS } from '../core/ews-monitor.js';
@@ -151,15 +151,67 @@ export function createLoan({ borrower, documents = [], consent = false, intervie
 
 const logged = (record, by, text, now) => [...(record.history || []), { at: now.toISOString(), by, text }];
 
-/** Petugas: tandai dokumen terverifikasi / belum. */
-export function verifyDocument(record, key, verified, now = new Date()) {
-     const documents = (record.documents || []).map((d) => (d.key === key ? { ...d, verified: !!verified, verified_at: verified ? now.toISOString() : null } : d));
-     return { ...record, documents };
+/* ------------------------------------------------ pemeriksaan petugas -- */
+
+/**
+ * Pemeriksaan mengikuti urutan aplikasi asal (diajukan → terverifikasi →
+ * dinilai → keputusan): hasil analisis dan penawaran baru tersedia setelah
+ * dokumen diperiksa DAN wawancara lengkap. Mengubah data yang sudah
+ * diperiksa membatalkan tahap sesudahnya.
+ */
+export function reviewState(record) {
+     const answered = INTERVIEW_QUESTIONS.filter((q) => Number.isFinite(record.interview?.[q.key]));
+     return {
+          verified: !!record.review?.verified_at,
+          scored: !!record.review?.scored_at,
+          answered: answered.length,
+          totalQuestions: INTERVIEW_QUESTIONS.length,
+          interviewDone: answered.length === INTERVIEW_QUESTIONS.length
+     };
 }
 
-/** Petugas: isi hasil wawancara (skala 1–5). */
+const resetReview = (record, from = 'verified') =>
+     from === 'verified' ? { ...record, review: null } : { ...record, review: record.review ? { ...record.review, scored_at: null, score: null } : null };
+
+/** Petugas: tandai dokumen terverifikasi / belum (membatalkan pemeriksaan yang sudah selesai). */
+export function verifyDocument(record, key, verified, now = new Date()) {
+     const documents = (record.documents || []).map((d) => (d.key === key ? { ...d, verified: !!verified, verified_at: verified ? now.toISOString() : null } : d));
+     return resetReview({ ...record, documents });
+}
+
+/** Petugas: koreksi data hasil pemeriksaan (tunggakan SLIK, kas cukup berapa bulan). */
+export function setReviewedField(record, path, value) {
+     const borrower = structuredClone(record.borrower);
+     const keys = path.split('.');
+     const last = keys.pop();
+     keys.reduce((o, k) => (o[k] ??= {}), borrower)[last] = value;
+     return resetReview({ ...record, borrower });
+}
+
+/** Petugas: selesai memeriksa data & dokumen → boleh lanjut wawancara. */
+export function finishVerification(record, { now = new Date() } = {}) {
+     requireStatus(record, ['diajukan'], 'Selesai memeriksa');
+     const pending = (record.documents || []).filter((d) => !d.verified).length;
+     return { ...record, review: { verified_at: now.toISOString(), scored_at: null, score: null },
+          history: logged(record, 'petugas', `Pemeriksaan dokumen selesai${pending ? ` (${pending} berkas belum cocok)` : ''}`, now) };
+}
+
+/** Petugas: isi hasil wawancara (skala 1–5); mengubahnya membatalkan hasil yang sudah dihitung. */
 export function setInterview(record, key, value) {
-     return { ...record, interview: { ...(record.interview || {}), [key]: value === null || value === '' ? null : Number(value) } };
+     const interview = { ...(record.interview || {}), [key]: value === null || value === '' ? null : Number(value) };
+     return resetReview({ ...record, interview }, 'scored');
+}
+
+/** Petugas: hitung hasil analisis setelah pemeriksaan & wawancara lengkap. */
+export function scoreApplication(record, { now = new Date() } = {}) {
+     requireStatus(record, ['diajukan'], 'Hitung hasil');
+     const r = reviewState(record);
+     if (!r.verified) throw new Error('Selesaikan pemeriksaan dokumen dulu.');
+     if (!r.interviewDone) throw new Error(`Wawancara belum lengkap (${r.answered} dari ${r.totalQuestions} pertanyaan).`);
+     const result = analyzeLoan(record);
+     const score = { finalScore: result.finalScore, grade: result.risk?.pefindo?.grade, decision: result.decision?.decision };
+     return { ...record, review: { ...record.review, scored_at: now.toISOString(), score },
+          history: logged(record, 'petugas', `Dinilai: ${score.grade} (skor ${score.finalScore})`, now) };
 }
 
 /** Petugas: minta perbaikan dengan catatan untuk pemohon. */
@@ -179,13 +231,14 @@ export function resubmit(record, { borrower, documents, now = new Date() }) {
           const prev = old.get(d.key);
           return prev && prev.sha256 === d.sha256 ? { ...d, verified: prev.verified, verified_at: prev.verified_at } : { ...d, verified: false };
      });
-     return { ...record, status: 'diajukan', borrower: structuredClone(borrower || record.borrower), documents: docs, fix_note: null,
+     return { ...record, status: 'diajukan', review: null, borrower: structuredClone(borrower || record.borrower), documents: docs, fix_note: null,
           history: logged(record, 'pemohon', 'Perbaikan dikirim', now) };
 }
 
 /** Petugas: kirim penawaran. Cicilan dihitung mesin pada syarat ini. */
 export function makeOffer(record, { amount, tenor, rate, periodicity, now = new Date() }) {
      requireStatus(record, ['diajukan'], 'Kirim penawaran');
+     if (!reviewState(record).scored) throw new Error('Hitung hasil analisis dulu sebelum mengirim penawaran.');
      if (!(num(amount) > 0)) throw new Error('Jumlah penawaran harus lebih dari 0.');
      if (!(num(tenor) >= 1 && num(tenor) <= 120)) throw new Error('Lama pinjaman 1–120 bulan.');
      if (!(num(rate) >= 0 && num(rate) <= 0.6)) throw new Error('Bunga 0–60% per tahun.');
@@ -497,10 +550,17 @@ export function loanCard(record) {
           headline = mon ? mon.label : 'Belum dipantau';
           sentence = mon ? mon.sentence : 'Catat pemantauan pertama setelah cicilan pertama.';
      } else if (record.status === 'diajukan') {
-          const result = analyzeLoan(record);
-          const s = STATUS[result.decision.decision];
-          tone = s.tone;
-          sentence = `Hasil analisis: ${s.label.toLowerCase()} (${result.risk.pefindo.grade}). Saran ${rupiah(result.nominal.recommended_nominal)}.`;
+          const r = reviewState(record);
+          if (r.scored) {
+               const result = analyzeLoan(record);
+               const s = STATUS[result.decision.decision];
+               tone = s.tone;
+               headline = 'Siap diputuskan';
+               sentence = `Hasil analisis: ${s.label.toLowerCase()} (${result.risk.pefindo.grade}). Saran ${rupiah(result.nominal.recommended_nominal)}.`;
+          } else {
+               headline = 'Belum dinilai';
+               sentence = !r.verified ? 'Langkah berikutnya: periksa data & dokumen.' : `Langkah berikutnya: wawancara (${r.answered} dari ${r.totalQuestions} dijawab).`;
+          }
      } else if (record.status === 'perbaikan') {
           sentence = `Diminta: ${record.fix_note}`;
      } else if (record.status === 'ditawarkan') {

@@ -5,7 +5,7 @@
  */
 
 import { emptyBorrower } from '../core/engine.js';
-import { createLoan, makeOffer, acceptOffer, verifyDocument, toggleCondition, conditionsView, disburseLoan, addMonitoring } from './loans.js';
+import { createLoan, makeOffer, acceptOffer, verifyDocument, finishVerification, scoreApplication, toggleCondition, conditionsView, disburseLoan, addMonitoring } from './loans.js';
 import { DOCUMENTS } from './intake.js';
 
 export function demoBuSari() {
@@ -92,6 +92,8 @@ export function demoPakDarto() {
 
      let r = createLoan({ borrower: b, documents: demoDocuments('darto'), consent: true, interview, now: new Date('2026-03-02T03:00:00Z') });
      for (const d of r.documents) r = verifyDocument(r, d.key, true, new Date('2026-03-03T03:00:00Z'));
+     r = finishVerification(r, { now: new Date('2026-03-03T04:00:00Z') });
+     r = scoreApplication(r, { now: new Date('2026-03-04T03:00:00Z') });
      r = makeOffer(r, { amount: 250_000_000, tenor: 24, rate: 0.14, periodicity: 'bulanan', now: new Date('2026-03-05T03:00:00Z') });
      r = acceptOffer(r, { now: new Date('2026-03-06T03:00:00Z') });
      for (const c of conditionsView(r).items) r = toggleCondition(r, c.code, true, new Date('2026-03-12T03:00:00Z'));

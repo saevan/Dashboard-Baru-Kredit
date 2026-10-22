@@ -358,3 +358,7 @@ textarea { font: inherit; padding: 10px 12px; border: 1px solid var(--line); bor
      .mode-switch { order: 2; }
 }
 .interview { display: grid; gap: 16px; }
+.locked { color: var(--muted); background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+.step-actions { display: grid; gap: 6px; justify-items: start; margin-top: 12px; }
+.step-actions p { margin: 0; }
+.review-steps { margin-bottom: 4px; }

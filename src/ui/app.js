@@ -18,6 +18,9 @@ import {
      resubmit,
      verifyDocument,
      setInterview,
+     setReviewedField,
+     finishVerification,
+     scoreApplication,
      requestFix,
      makeOffer,
      acceptOffer,
@@ -394,11 +397,7 @@ function onChange(e) {
           return render();
      }
      if (t.dataset.lenderNumber) {
-          updateLoan(id, (l) => {
-               const borrower = structuredClone(l.borrower);
-               setPath(borrower, t.dataset.lenderNumber, t.value === '' ? null : Number(t.value));
-               return { ...l, borrower };
-          });
+          updateLoan(id, (l) => setReviewedField(l, t.dataset.lenderNumber, t.value === '' ? null : Number(t.value)));
           refreshSimBase();
           return render();
      }
@@ -505,10 +504,8 @@ function onClick(e) {
                state.view = 'portfolio';
                return render();
           case 'demo-sari-submitted': {
-               const loan = createLoan({ borrower: { ...demoBuSari(), financial_import: { filename: 'laporan_keuangan_bu_sari.csv', label: 'Satu periode laporan · Rupiah' } }, documents: demoDocuments(), consent: true,
-                    interview: { model: 4, pasar: 4, pengalaman: 4, bayar: 4, kelola: 4, tren: 4, industri: 4 } });
+               const loan = createLoan({ borrower: { ...demoBuSari(), financial_import: { filename: 'laporan_keuangan_bu_sari.csv', label: 'Satu periode laporan · Rupiah' } }, documents: demoDocuments(), consent: true });
                loan.demo = 'sari';
-               loan.history.push({ at: loan.created_at, by: 'petugas', text: 'Contoh: wawancara sudah diisi (semua "Baik")' });
                state.loans.push(loan);
                save();
                openLoan(loan.id);
@@ -521,6 +518,15 @@ function onClick(e) {
                openLoan(loan.id);
                return render();
           }
+          case 'finish-verify':
+               if (updateLoan(id, (l) => finishVerification(l))) state.notice = 'Pemeriksaan dokumen selesai. Lanjutkan wawancara.';
+               return render();
+          case 'score':
+               if (updateLoan(id, (l) => scoreApplication(l))) {
+                    refreshSimBase();
+                    state.notice = 'Hasil analisis sudah dihitung. Periksa hasilnya lalu ambil keputusan.';
+               }
+               return render();
           case 'detail':
                state.ui = { ...state.ui, detailOpen: !state.ui.detailOpen };
                return render();
