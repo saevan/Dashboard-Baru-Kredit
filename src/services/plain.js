@@ -1,5 +1,5 @@
 /**
- * simple/translate.js — Penerjemah hasil mesin MEZS.id ke bahasa sehari-hari.
+ * services/plain.js — Penerjemah hasil mesin MEZS.id ke bahasa sehari-hari.
  *
  * Pure function: menerima hasil runFullAnalysis() apa adanya dan TIDAK
  * menghitung ulang skor, keputusan, plafon, atau bunga. Yang dilakukan hanya:

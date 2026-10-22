@@ -1,0 +1,140 @@
+[
+  {
+    "case": "01_usaha_sehat",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 86.1,
+    "grade": "idAA",
+    "decision": "LAYAK",
+    "dscr": 2.631578947368421,
+    "ltv": 0.5,
+    "integrity": "ok",
+    "nominal": 100000000
+  },
+  {
+    "case": "02_agunan_kurang",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 84.6,
+    "grade": "idAA",
+    "decision": "REVIEW",
+    "dscr": 2.9577464788732404,
+    "ltv": 0.8333333333333334,
+    "integrity": "ok",
+    "nominal": 450000000
+  },
+  {
+    "case": "03_arus_kas_lemah",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 73.3,
+    "grade": "idCCC",
+    "decision": "TIDAK_LAYAK",
+    "dscr": 0.2631578947368421,
+    "ltv": 0.5,
+    "integrity": "ok",
+    "nominal": 15700000
+  },
+  {
+    "case": "04_neraca_tidak_seimbang",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 86,
+    "grade": "idAA",
+    "decision": "LAYAK",
+    "dscr": 2.631578947368421,
+    "ltv": 0.5,
+    "integrity": "invalid",
+    "nominal": 100000000
+  },
+  {
+    "case": "05_usaha_rugi",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 65.7,
+    "grade": "idCCC",
+    "decision": "TIDAK_LAYAK",
+    "dscr": -0.17543859649122806,
+    "ltv": 0.5,
+    "integrity": "ok",
+    "nominal": 0
+  },
+  {
+    "case": "06_laporan_parsial",
+    "scores": {
+      "skor_model_bisnis": 0.8,
+      "posisi_pasar": 0.8,
+      "skalabilitas": 0.8,
+      "ketergantungan": 0.8,
+      "tren_keuangan": 0.8,
+      "pengalaman_tim": 0.8,
+      "rekam_jejak_bayar": 0.8,
+      "tata_kelola": 0.8,
+      "skor_industri_risk": 0.8,
+      "prospek_industri": 0.8,
+      "sensitivitas_makro": 0.8
+    },
+    "score": 70.5,
+    "grade": "idCCC",
+    "decision": "TIDAK_LAYAK",
+    "dscr": 0,
+    "ltv": 0.5,
+    "integrity": "ok",
+    "nominal": 0
+  }
+]
