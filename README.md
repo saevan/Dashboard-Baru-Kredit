@@ -44,7 +44,15 @@ npm run serve        # lalu buka http://localhost:8765
 npm test             # tes mesin dari repo asal + tes tampilan sederhana; Node ≥ 22.5
 ```
 
-Tanpa build dan tanpa dependency. Deploy statis (mis. Vercel) langsung dari root repo.
+Tanpa build dan tanpa dependency.
+
+## Deploy
+
+- **GitHub Pages:** workflow `.github/workflows/pages.yml` menjalankan tes lalu men-deploy setiap push.
+  Aktifkan sekali di *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+- **Vercel / Netlify:** impor repo, tanpa build command, output directory = root.
+- Di dalam frame (mis. Artifact claude.ai) tombol Cetak disembunyikan dan cadangan disalin ke papan klip,
+  karena host memblokir dialog, cetak, dan unduhan.
 
 ## Struktur
 

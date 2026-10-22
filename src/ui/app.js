@@ -64,6 +64,8 @@ const state = {
      resultLoanId: null,
      ui: {},
      sim: { amount: 0, tenor: 36, rate: 0.14 },
+     confirm: null,
+     backupText: null,
      analyzedBorrower: null
 };
 
@@ -246,7 +248,7 @@ function renderResult() {
                          ? `<button type="button" class="btn ghost" data-open="${esc(state.resultLoanId)}">← Kembali ke pinjaman</button>`
                          : `<button type="button" class="btn ghost" data-action="edit">Ubah data</button>
                     <button type="button" class="btn primary" data-action="save-loan">Simpan ke daftar pinjaman</button>`}
-                    <button type="button" class="btn ghost" data-action="print">Cetak</button>
+                    ${FRAMED ? '' : '<button type="button" class="btn ghost" data-action="print">Cetak</button>'}
                </div>
           </div>
 
@@ -422,6 +424,15 @@ function renderDetail(r) {
 /* ------------------------------------------------------------ render ---- */
 
 const root = () => document.getElementById('app');
+
+/** Di dalam frame (mis. Artifact claude.ai) dialog, cetak, dan unduhan diblokir host. */
+const FRAMED = (() => {
+     try {
+          return window.self !== window.top;
+     } catch {
+          return true;
+     }
+})();
 const findLoan = (id) => state.loans.find((l) => l.id === id) || null;
 
 function render() {
@@ -442,8 +453,56 @@ function render() {
      } catch (err) {
           html = `<section class="panel"><p class="alert" role="alert">Terjadi kesalahan saat menampilkan halaman: ${esc(err.message)}</p></section>`;
      }
-     root().innerHTML = (state.notice ? `<div class="toast" role="status">${esc(state.notice)}</div>` : '') + html;
+     root().innerHTML = (state.notice ? `<div class="toast" role="status">${esc(state.notice)}</div>` : '') + renderConfirm() + renderBackupText() + html;
      state.notice = '';
+}
+
+/** Konfirmasi di halaman (pengganti confirm/prompt yang diblokir di dalam frame). */
+const CONFIRM_TEXT = {
+     'delete-loan': { message: 'Hapus pinjaman ini dari daftar? Tindakan ini tidak bisa dibatalkan.', yes: 'Ya, hapus' },
+     reject: { message: 'Tolak pengajuan ini? Tulis alasannya; pemohon akan membacanya.', yes: 'Tolak pengajuan', reason: true },
+     'draw-rest': { message: 'Sertifikat borrowing base terbaru sudah diperiksa dan cukup untuk menarik sisa plafon?', yes: 'Ya, tarik sisa plafon' },
+     restructure: { message: 'Terapkan keringanan ini? Cicilan dan lama pinjaman akan diperbarui.', yes: 'Ya, terapkan' }
+};
+
+function renderConfirm() {
+     const c = state.confirm;
+     if (!c) return '';
+     const t = CONFIRM_TEXT[c.action];
+     return `<div class="confirm" role="alertdialog" aria-labelledby="confirm-msg">
+          <p id="confirm-msg"><b>${esc(t.message)}</b></p>
+          ${t.reason ? '<label class="field"><span class="field-label">Alasan</span><input type="text" id="confirm-reason" maxlength="300"></label>' : ''}
+          <div class="confirm-actions">
+               <button type="button" class="btn ghost" data-action="confirm-no">Batal</button>
+               <button type="button" class="btn primary" data-action="confirm-yes">${esc(t.yes)}</button>
+          </div>
+     </div>`;
+}
+
+function renderBackupText() {
+     if (state.backupText === null) return '';
+     return `<div class="confirm"><p><b>Salin teks cadangan ini</b> dan simpan sebagai berkas <code>.json</code>. Untuk memulihkan, pilih berkas itu lewat "Pulihkan dari cadangan".</p>
+          <textarea class="backup-text" id="backup-text" readonly>${esc(state.backupText)}</textarea>
+          <div class="confirm-actions"><button type="button" class="btn ghost" data-action="backup-close">Tutup</button></div></div>`;
+}
+
+function runConfirmed() {
+     const c = state.confirm;
+     state.confirm = null;
+     if (!c) return;
+     if (c.action === 'delete-loan') {
+          state.loans = state.loans.filter((l) => l.id !== c.id);
+          save();
+          state.view = 'pinjaman';
+          state.notice = 'Pinjaman dihapus.';
+     } else if (c.action === 'reject') {
+          updateLoan(c.id, (l) => rejectLoan(l, { reason: c.reason || '' }));
+     } else if (c.action === 'draw-rest') {
+          updateLoan(c.id, (l) => drawRemaining(l));
+     } else if (c.action === 'restructure') {
+          updateLoan(c.id, (l) => applyRestructuring(l, c.type));
+          if (findLoan(c.id)?.restructuring) state.notice = 'Keringanan cicilan diterapkan.';
+     }
 }
 
 /* ------------------------------------------------------------ actions --- */
@@ -561,6 +620,7 @@ function onClick(e) {
           save();
           return render();
      }
+     if (el.dataset.nav || el.dataset.open) state.confirm = null;
      if (el.dataset.nav) {
           state.view = el.dataset.nav === 'pinjaman' ? 'pinjaman' : 'form';
           return render();
@@ -625,27 +685,45 @@ function onClick(e) {
                return render();
           }
           case 'delete-loan':
-               if (!window.confirm('Hapus pinjaman ini dari daftar? Tindakan ini tidak bisa dibatalkan.')) return undefined;
-               state.loans = state.loans.filter((l) => l.id !== id);
-               save();
-               state.view = 'pinjaman';
+          case 'reject':
+          case 'draw-rest':
+          case 'restructure':
+               state.confirm = { action: el.dataset.action, id, type: el.dataset.type || null };
+               render();
+               window.scrollTo({ top: 0 });
+               root().querySelector('#confirm-reason, [data-action=confirm-yes]')?.focus();
+               return undefined;
+          case 'confirm-yes':
+               if (state.confirm) state.confirm.reason = root().querySelector('#confirm-reason')?.value || '';
+               runConfirmed();
                return render();
-          case 'reject': {
-               const reason = window.prompt('Alasan penolakan (akan dibaca pemohon):', '');
-               if (reason === null) return undefined;
-               updateLoan(id, (l) => rejectLoan(l, { reason }));
+          case 'confirm-no':
+               state.confirm = null;
                return render();
-          }
+          case 'backup-close':
+               state.backupText = null;
+               return render();
           case 'disburse':
                updateLoan(id, (l) => disburseLoan(l));
                if (findLoan(id)?.status === 'aktif') state.notice = 'Dana dicairkan. Pinjaman kini dipantau setiap bulan.';
                return render();
-          case 'draw-rest':
-               if (!window.confirm('Sertifikat borrowing base terbaru sudah diperiksa dan cukup untuk menarik sisa plafon?')) return undefined;
-               updateLoan(id, (l) => drawRemaining(l));
-               return render();
           case 'export': {
-               const blob = new Blob([JSON.stringify({ app: 'mezs-sederhana', version: 1, exported_at: new Date().toISOString(), loans: state.loans }, null, 2)], { type: 'application/json' });
+               const text = JSON.stringify({ app: 'mezs-sederhana', version: 1, exported_at: new Date().toISOString(), loans: state.loans }, null, 2);
+               if (FRAMED) {
+                    // Unduhan diblokir di dalam frame: salin ke papan klip, atau tampilkan teks untuk disalin manual.
+                    state.backupText = text;
+                    navigator.clipboard?.writeText(text).then(() => {
+                         state.notice = 'Cadangan disalin. Tempel ke berkas teks dan simpan sebagai .json.';
+                         state.backupText = null;
+                         render();
+                    }).catch(() => {
+                         render();
+                         root().querySelector('#backup-text')?.select();
+                    });
+                    if (!navigator.clipboard) render();
+                    return undefined;
+               }
+               const blob = new Blob([text], { type: 'application/json' });
                const link = document.createElement('a');
                link.href = URL.createObjectURL(blob);
                link.download = `cadangan-pinjaman-${new Date().toISOString().slice(0, 10)}.json`;
@@ -655,11 +733,6 @@ function onClick(e) {
           }
           case 'show-relief':
                state.ui = { ...state.ui, relief: true };
-               return render();
-          case 'restructure':
-               if (!window.confirm('Terapkan keringanan ini? Cicilan dan lama pinjaman akan diperbarui.')) return undefined;
-               updateLoan(id, (l) => applyRestructuring(l, el.dataset.type));
-               if (findLoan(id)?.restructuring) state.notice = 'Keringanan cicilan diterapkan.';
                return render();
           default:
      }
