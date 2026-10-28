@@ -103,3 +103,14 @@ Yang dipangkas adalah pekerjaan rutin:
 
 Kontrol tidak berkurang: "tandai semua" hanya mencentang butir yang bisa dicentang manual (butir otomatis
 tetap dihitung mesin), audit yang belum lengkap tetap wajib justifikasi, keputusan di luar batas tetap wajib alasan.
+
+## 9. Segmen target & bahasa pasar
+
+- **Debitur kecil vs besar** ditentukan dari omzet setahun pada laporan keuangan (kriteria penjualan PP 7/2021):
+  ≤ Rp2 M mikro, ≤ Rp15 M kecil → *debitur kecil*; ≤ Rp50 M menengah, di atasnya besar → *debitur besar*.
+  Berbeda dari `core/segment.js` (segmen operasional dari jumlah pinjaman), yang tetap dipakai mesin.
+- **Hanya tampilan & bahasa** yang berbeda: isian dan perhitungan sama. Debitur kecil → ringkasan sehari-hari
+  di depan, "Rincian lengkap (istilah bank)" terlipat. Debitur besar → rincian analis terbuka seperti biasa.
+- **Bahasa pasar** (pedagang & UMKM lokal) di semua layar pemohon: status, pesan, wizard, tawaran, linimasa,
+  halaman masuk/daftar. Logika status tetap `core/applicant-feedback.js`; hanya kata-katanya diganti.
+- Halaman utama (landing) sengaja tetap sama dengan dashboard lama.

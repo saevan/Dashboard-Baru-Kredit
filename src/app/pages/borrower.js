@@ -18,15 +18,31 @@ import {
      toast, confirmSheet, busy, track, fileBytes, bindDrop, TONE
 } from '../ui.js';
 import { simulatorHtml, bindSimulator, offerTermsHtml, timelineHtml } from '../widgets.js';
+import { debtorSize } from '../../services/segment-size.js';
 
 const STATUS_TONE = { draft: '', submitted: 'info', need_fix: 'warn', verified: 'info', scored: 'info', offered: 'ok', accepted: 'ok', declined: '', decided: 'ok', rejected: 'bad' };
 const statusPill = (app) => pill(app.view?.label || app.status, STATUS_TONE[app.status] || '');
+
+/* Nama angka keuangan dalam bahasa pedagang (kunci & perhitungan tetap sama). */
+const FIN_PASAR = {
+     penjualan: 'Omzet setahun',
+     laba_bersih: 'Untung bersih setahun',
+     ebit: 'Untung sebelum bunga & pajak',
+     aset_lancar: 'Harta yang cepat jadi uang'
+};
+
+/* Segmen debitur dari omzet laporan (PP 7/2021) — hanya keterangan untuk pemohon. */
+function sizeNote(keuangan) {
+     const sz = debtorSize(keuangan);
+     if (!sz) return '';
+     return `<p class="callout ${sz.key === 'kecil' ? 'ok' : ''} small" data-size="${sz.key}"><strong>${esc(sz.klasLabel)}</strong> — omzet ${esc(rpShort(sz.omzet))} setahun. ${sz.key === 'kecil' ? 'Pengajuan Bapak/Ibu masuk jalur debitur kecil: hasilnya dijelaskan dengan bahasa sehari-hari.' : 'Pengajuan masuk jalur debitur besar.'}</p>`;
+}
 
 function nextAction(app) {
      const href = `#/pengajuan/${encodeURIComponent(app.id)}`;
      if (app.status === 'draft') return `<a class="btn btn-primary" href="#/ajukan?id=${encodeURIComponent(app.id)}">Lanjutkan mengisi</a>`;
      if (app.status === 'need_fix') return `<a class="btn btn-primary" href="#/ajukan?id=${encodeURIComponent(app.id)}">Perbaiki sekarang</a>`;
-     if (app.status === 'offered') return `<a class="btn btn-primary" href="${href}">Lihat penawaran</a>`;
+     if (app.status === 'offered') return `<a class="btn btn-primary" href="${href}">Lihat tawaran</a>`;
      return `<a class="btn" href="${href}">Lihat status</a>`;
 }
 
@@ -38,18 +54,18 @@ export function home(main) {
      const latest = apps[0];
      const first = (s?.name || '').split(' ')[0];
      main.innerHTML = `
-     <div class="page-head"><div><h1>Halo${first ? `, ${esc(first)}` : ''} 👋</h1><p>Ini ringkasan pinjaman usaha Anda.</p></div></div>
+     <div class="page-head"><div><h1>Halo${first ? `, ${esc(first)}` : ''} 👋</h1><p>Ini ringkasan pinjaman modal usaha Bapak/Ibu.</p></div></div>
      ${latest
           ? answer({ eyebrow: latest.borrower?.nama || latest.payload?.borrower?.nama || 'Pengajuan terakhir', title: latest.feedback.title, text: latest.feedback.message, tone: latest.feedback.tone, actions: nextAction(latest) + (apps.length > 1 ? '<a class="btn btn-quiet" href="#/pengajuan">Semua pengajuan</a>' : '') })
-          : answer({ eyebrow: 'Mulai di sini', title: 'Belum ada pengajuan', text: 'Isi data usaha, kirim laporan keuangan apa adanya, lalu tunggu penawaran dari petugas. Sekitar 10 menit.', actions: '<a class="btn btn-primary" href="#/ajukan">Ajukan pinjaman</a>' })}
+          : answer({ eyebrow: 'Mulai di sini', title: 'Belum ada pengajuan', text: 'Isi data usaha, kirim catatan keuangan apa adanya, lalu tunggu tawaran dari petugas. Sekitar 10 menit.', actions: '<a class="btn btn-primary" href="#/ajukan">Ajukan pinjaman modal</a>' })}
      <div class="split" style="margin-top:14px">
           ${card('Hitung perkiraan cicilan', simulatorHtml({ id: 'home', showCost: false }))}
           <div class="stack">
                ${card('Cara kerjanya', `<ol class="timeline">
                     <li class="${apps.length ? 'done' : 'now'}">Isi data usaha &amp; jumlah pinjaman</li>
-                    <li>Kirim laporan keuangan — angkanya dibaca otomatis</li>
-                    <li>Petugas memeriksa &amp; menilai</li>
-                    <li>Terima atau tolak penawaran</li></ol>`)}
+                    <li>Kirim catatan keuangan — angkanya dibaca otomatis</li>
+                    <li>Petugas mengecek berkas &amp; usaha</li>
+                    <li>Bapak/Ibu pilih: ambil atau tolak tawaran</li></ol>`)}
                ${card('Siapkan dokumen ini', `<ul class="doclist">${VERIFICATION_SOURCES.filter((d) => d.mandatory).map((d) => `<li><span>${esc(d.label)}</span><span class="pill warn">Wajib</span></li>`).join('')}</ul>`)}
           </div>
      </div>`;
@@ -59,7 +75,7 @@ export function home(main) {
 
 /* ============================================================= AJUKAN ==== */
 
-const WIZ = ['Usaha & pinjaman', 'Laporan keuangan', 'Jaminan & dokumen', 'Periksa & kirim'];
+const WIZ = ['Usaha & pinjaman', 'Catatan keuangan', 'Jaminan & berkas', 'Cek & kirim'];
 let wiz = { draft: null, step: 0, error: '', notice: '' };
 
 function loadDraft(id) {
@@ -115,20 +131,20 @@ const go = (n) => {
 /* ---- langkah 1 ---- */
 function stepUsaha(d) {
      const b = d.borrower;
-     return card('Tentang usaha Anda', `<div class="form-grid">
+     return card('Tentang usaha Bapak/Ibu', `<div class="form-grid">
           ${field({ id: 'f-nama', label: 'Nama usaha', control: `<input id="f-nama" name="nama" type="text" autocomplete="organization" value="${esc(b.nama)}" required>` })}
-          ${field({ id: 'f-sektor', label: 'Bidang usaha', control: `<select id="f-sektor" name="sektor" required>${options(SECTOR_OPTIONS, b.sektor, 'Pilih bidang usaha')}</select>` })}
+          ${field({ id: 'f-sektor', label: 'Jualan / bidang usaha', control: `<select id="f-sektor" name="sektor" required>${options(SECTOR_OPTIONS, b.sektor, 'Pilih bidang usaha')}</select>` })}
           <div class="field span-2"><span class="label">Jenis peminjam</span>${choices('jenis_peminjam', BORROWER_TYPES, borrowerType(b.profil_company))}</div>
           <div class="field span-2" data-umkm-sub ${borrowerType(b.profil_company) === 'umkm' ? '' : 'hidden'}><span class="label">Jenis usaha UMKM</span>${choices('profil_umkm', UMKM_PROFILE_OPTIONS, b.profil_company === 'startup' ? 'ukm_mapan' : b.profil_company)}</div>
-     </div>`) + card('Pinjaman yang dibutuhkan', `<div class="form-grid">
-          <div class="field money"><label for="f-plafon">Jumlah pinjaman</label><p class="hint">Contoh: 400 jt, 1,2 M, atau 400000000</p>
+     </div>`) + card('Modal yang dibutuhkan', `<div class="form-grid">
+          <div class="field money"><label for="f-plafon">Butuh modal berapa?</label><p class="hint">Contoh: 50 jt, 400 jt, atau 50000000</p>
                <input id="f-plafon" name="plafon_diajukan" type="text" inputmode="decimal" value="${b.plafon_diajukan ? esc(b.plafon_diajukan.toLocaleString('id-ID')) : ''}" data-money required><p class="echo" data-echo aria-live="polite">${b.plafon_diajukan ? rp(b.plafon_diajukan) : ''}</p></div>
-          ${field({ id: 'f-tenor', label: 'Lama pinjaman (bulan)', hint: 'Misalnya 12, 24, atau 36 bulan', control: `<input id="f-tenor" name="tenor_bulan" type="number" inputmode="numeric" min="1" max="120" value="${esc(b.tenor_bulan ?? '')}" required>` })}
-          <div class="field span-2"><span class="label">Cicil setiap</span><p class="hint">Pilih yang sesuai arus uang usaha Anda. Kosongkan untuk mengikuti saran sistem.</p>${choices('periode_angsuran', PERIOD_OPTIONS, b.periode_angsuran)}</div>
-          <div class="field span-2"><span class="label">Untuk keperluan</span>${choices('jenis_kredit', PURPOSE_OPTIONS, b.jenis_kredit)}</div>
-          <div class="field span-2"><label for="f-tujuan">Ceritakan singkat penggunaannya</label><textarea id="f-tujuan" name="tujuan_kredit" maxlength="500" placeholder="Misal: beli bahan baku untuk kontrak katering kantor baru">${esc(b.tujuan_kredit || '')}</textarea></div>
+          ${field({ id: 'f-tenor', label: 'Mau dicicil berapa bulan?', hint: 'Misalnya 12, 24, atau 36 bulan', control: `<input id="f-tenor" name="tenor_bulan" type="number" inputmode="numeric" min="1" max="120" value="${esc(b.tenor_bulan ?? '')}" required>` })}
+          <div class="field span-2"><span class="label">Bayar cicilan tiap</span><p class="hint">Pilih yang cocok dengan uang masuk dari jualan. Boleh dikosongkan, nanti kami sarankan.</p>${choices('periode_angsuran', PERIOD_OPTIONS, b.periode_angsuran)}</div>
+          <div class="field span-2"><span class="label">Modalnya untuk apa?</span>${choices('jenis_kredit', PURPOSE_OPTIONS, b.jenis_kredit)}</div>
+          <div class="field span-2"><label for="f-tujuan">Ceritakan singkat</label><textarea id="f-tujuan" name="tujuan_kredit" maxlength="500" placeholder="Misal: tambah stok barang jualan menjelang Lebaran">${esc(b.tujuan_kredit || '')}</textarea></div>
      </div>
-     <details class="more"><summary>Data legalitas (opsional)</summary><div class="form-grid" style="margin-top:10px">
+     <details class="more"><summary>Data izin usaha (boleh dilewati)</summary><div class="form-grid" style="margin-top:10px">
           ${field({ id: 'f-npwp', label: 'NPWP', hint: '15 atau 16 digit', control: `<input id="f-npwp" name="npwp" type="text" inputmode="numeric" value="${esc(b.npwp || '')}">` })}
           ${field({ id: 'f-nib', label: 'NIB', hint: '13 digit', control: `<input id="f-nib" name="nib" type="text" inputmode="numeric" value="${esc(b.nib || '')}">` })}
      </div></details>`);
@@ -141,15 +157,15 @@ function stepKeuangan(d) {
      const cands = doc?.extraction?.candidates || [];
      const applied = b.financial_import?.doc_id === doc?.id ? b.financial_import : null;
      const candList = cands.length > 1
-          ? `<div class="callout" style="margin-top:12px"><strong>Laporan berisi ${cands.length} periode.</strong> ${applied ? `Dipakai: ${esc(applied.label || '')}.` : 'Pilih periode yang dipakai:'}
+          ? `<div class="callout" style="margin-top:12px"><strong>Berkas ini berisi ${cands.length} periode.</strong> ${applied ? `Dipakai: ${esc(applied.label || '')}.` : 'Pilih yang mau dipakai:'}
                <div class="actions" style="margin-top:8px">${cands.map((c, i) => `<button class="btn btn-sm${applied?.candidate_index === i ? ' btn-primary' : ''}" type="button" data-cand="${i}">${esc(c.label || `Periode ${i + 1}`)}</button>`).join('')}</div></div>`
           : '';
      const ocr = doc && A.ocrEligible(doc)
-          ? `<div class="callout warn" style="margin-top:12px">Angka belum terbaca dari berkas ini (foto / hasil scan). <button class="btn btn-sm" type="button" data-ocr>Baca teks dari gambar</button> <span class="small muted" data-ocr-status aria-live="polite"></span></div>`
+          ? `<div class="callout warn" style="margin-top:12px">Angka belum terbaca dari foto ini. <button class="btn btn-sm" type="button" data-ocr>Baca teks dari gambar</button> <span class="small muted" data-ocr-status aria-live="polite"></span></div>`
           : '';
-     return card('Kirim laporan keuangan', `
-          <p class="muted">Kirim neraca &amp; laba rugi apa adanya. Kami membaca angkanya; Anda cukup memeriksa di bawah.</p>
-          ${A.isDemoBorrower() ? '<p class="callout small"><strong>Akun demo:</strong> hanya laporan keuangan yang perlu diunggah — dokumen lain sudah terisi contoh.</p>' : ''}
+     return card('Kirim catatan keuangan', `
+          <p class="muted">Kirim laporan keuangan / catatan jualan setahun terakhir apa adanya — foto juga boleh. Angkanya kami baca, Bapak/Ibu tinggal mengecek di bawah.</p>
+          ${A.isDemoBorrower() ? '<p class="callout small"><strong>Akun demo:</strong> hanya catatan keuangan yang perlu diunggah — berkas lain sudah terisi contoh.</p>' : ''}
           <div class="drop" data-drop>
                <input type="file" accept="${FILE_ACCEPT}" aria-label="Pilih berkas laporan keuangan">
                ${doc ? `<p><span class="check-anim" aria-hidden="true">✓</span> <strong>${esc(doc.filename)}</strong></p><p class="small muted">${esc(doc.extraction?.message || '')}</p>` : '<p><strong>Seret berkas ke sini</strong> atau</p>'}
@@ -157,11 +173,12 @@ function stepKeuangan(d) {
                <p class="small muted" style="margin-top:8px">PDF, Excel, CSV, JPG, PNG · maks. 5 MB</p>
           </div>
           <p class="small" style="margin-top:8px">Belum punya berkas? <button class="btn btn-quiet btn-sm" type="button" data-sample>Coba berkas contoh</button></p>
-          ${candList}${ocr}`) + card('Periksa angkanya', `
+          ${candList}${ocr}`) + card('Cek angkanya', `
+          ${sizeNote(b.keuangan)}
           <p class="muted small">Angka setahun terakhir dalam rupiah. Yang bertanda <span class="pill warn">wajib</span> harus terisi.</p>
           <div class="form-grid">${FINANCE_FIELDS.map((f) => {
                const v = b.keuangan?.[f.key];
-               return `<div class="field money"><label for="k-${f.key}">${esc(f.label)} ${f.min ? '<span class="pill warn">wajib</span>' : ''}</label><p class="hint">${esc(f.hint)}</p>
+               return `<div class="field money"><label for="k-${f.key}">${esc(FIN_PASAR[f.key] || f.label)} ${f.min ? '<span class="pill warn">wajib</span>' : ''}</label><p class="hint">${esc(f.hint)}</p>
                     <input id="k-${f.key}" name="k.${f.key}" type="text" inputmode="decimal" value="${v === null || v === undefined ? '' : esc(Number(v).toLocaleString('id-ID'))}" data-money><p class="echo" data-echo>${v === null || v === undefined ? '' : rpShort(v)}</p></div>`;
           }).join('')}</div>`);
 }
@@ -171,15 +188,15 @@ function stepJaminan(d) {
      const a = d.borrower.agunan || {};
      const docs = VERIFICATION_SOURCES.filter((s) => s.key !== 'laporan_keuangan');
      return card('Jaminan', `
-          <div class="field"><span class="label">Apakah ada jaminan?</span>${choices('ag.ketersediaan', [{ key: 'ada', label: 'Ada jaminan' }, { key: 'tidak_ada', label: 'Tidak ada jaminan' }], a.ketersediaan)}</div>
+          <div class="field"><span class="label">Ada barang yang bisa dijaminkan?</span>${choices('ag.ketersediaan', [{ key: 'ada', label: 'Ada' }, { key: 'tidak_ada', label: 'Tidak ada' }], a.ketersediaan)}</div>
           <div data-ag-detail ${a.ketersediaan === 'ada' ? '' : 'hidden'}><div class="form-grid">
-               ${field({ id: 'ag-jenis', label: 'Jenis jaminan', control: `<select id="ag-jenis" name="ag.jenis">${options(COLLATERAL_OPTIONS, a.jenis, 'Pilih jenis')}</select>` })}
-               <div class="field money"><label for="ag-nilai">Perkiraan nilai</label><input id="ag-nilai" name="ag.nilai_agunan" type="text" inputmode="decimal" value="${a.nilai_agunan ? esc(Number(a.nilai_agunan).toLocaleString('id-ID')) : ''}" data-money><p class="echo" data-echo>${a.nilai_agunan ? rpShort(a.nilai_agunan) : ''}</p></div>
-               ${field({ id: 'ag-pemilik', label: 'Atas nama', control: `<input id="ag-pemilik" name="ag.pemilik" type="text" value="${esc(a.pemilik || '')}">` })}
-               ${field({ id: 'ag-ket', label: 'Lokasi / nomor identitas', hint: 'Misal alamat tanah, nomor BPKB', control: `<input id="ag-ket" name="ag.keterangan" type="text" value="${esc(a.keterangan || '')}">` })}
-          </div></div>`) + card('Dokumen pendukung', `
-          ${A.isDemoBorrower() ? '<p class="callout ok small"><strong>Akun demo:</strong> dokumen pendukung sudah terisi contoh supaya presentasi lebih cepat. Anda tetap bisa menggantinya dengan berkas sungguhan.</p>' : ''}
-          <p class="muted small">Dokumen wajib membantu pengajuan diproses lebih cepat. Bisa menyusul bila diminta petugas.</p>
+               ${field({ id: 'ag-jenis', label: 'Barang apa', control: `<select id="ag-jenis" name="ag.jenis">${options(COLLATERAL_OPTIONS, a.jenis, 'Pilih jenis')}</select>` })}
+               <div class="field money"><label for="ag-nilai">Kira-kira harganya</label><input id="ag-nilai" name="ag.nilai_agunan" type="text" inputmode="decimal" value="${a.nilai_agunan ? esc(Number(a.nilai_agunan).toLocaleString('id-ID')) : ''}" data-money><p class="echo" data-echo>${a.nilai_agunan ? rpShort(a.nilai_agunan) : ''}</p></div>
+               ${field({ id: 'ag-pemilik', label: 'Atas nama siapa', control: `<input id="ag-pemilik" name="ag.pemilik" type="text" value="${esc(a.pemilik || '')}">` })}
+               ${field({ id: 'ag-ket', label: 'Keterangan', hint: 'Misal alamat tanah, nomor BPKB motor', control: `<input id="ag-ket" name="ag.keterangan" type="text" value="${esc(a.keterangan || '')}">` })}
+          </div></div>`) + card('Berkas pendukung', `
+          ${A.isDemoBorrower() ? '<p class="callout ok small"><strong>Akun demo:</strong> berkas pendukung sudah terisi contoh supaya presentasi lebih cepat. Tetap bisa diganti dengan berkas sungguhan.</p>' : ''}
+          <p class="muted small">Berkas wajib bikin pengajuan lebih cepat diproses. Kalau belum ada, boleh menyusul saat diminta petugas.</p>
           <ul class="list">${docs.map((s) => {
                const doc = d.documents.find((x) => x.source_key === s.key);
                return `<li><div class="main"><strong>${esc(s.label)}</strong> ${s.mandatory ? pill('Wajib', 'warn') : pill('Opsional', 'plain')}
@@ -196,12 +213,12 @@ function stepKirim(d) {
      const missingDocs = VERIFICATION_SOURCES.filter((s) => s.mandatory && !d.documents.some((x) => x.source_key === s.key));
      const sector = SECTOR_OPTIONS.find((s) => s.key === b.sektor)?.label || b.sektor;
      const ag = b.agunan || {};
-     return card('Usaha & pinjaman', rows([['Nama usaha', esc(b.nama)], ['Jenis peminjam', esc(borrowerTypeLabel(b.profil_company))], ['Bidang', esc(sector)], ['Jumlah', rp(b.plafon_diajukan)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Cicil setiap', esc(PERIOD_OPTIONS.find((p) => p.key === b.periode_angsuran)?.label || 'Sesuai saran')]]), { actions: edit(1) })
-          + card('Laporan keuangan', rows(FINANCE_FIELDS.filter((f) => f.min).map((f) => [f.label, rp(b.keuangan?.[f.key])])), { actions: edit(2) })
-          + card('Jaminan & dokumen', rows([['Jaminan', ag.ketersediaan === 'ada' ? `${esc(COLLATERAL_OPTIONS.find((c) => c.key === ag.jenis)?.label || '')} · ${rp(ag.nilai_agunan)}` : 'Tanpa jaminan'], ['Dokumen terlampir', `${d.documents.length} berkas`]])
-               + (missingDocs.length ? `<p class="callout warn small" style="margin-top:8px">Belum dilampirkan: ${missingDocs.map((s) => esc(s.label)).join(', ')}. Anda tetap bisa mengirim; petugas mungkin meminta menyusul.</p>` : ''), { actions: edit(3) })
+     return card('Usaha & pinjaman', rows([['Nama usaha', esc(b.nama)], ['Jenis peminjam', esc(borrowerTypeLabel(b.profil_company))], ['Bidang', esc(sector)], ['Modal diminta', rp(b.plafon_diajukan)], ['Dicicil', `${esc(b.tenor_bulan)} bulan`], ['Bayar tiap', esc(PERIOD_OPTIONS.find((p) => p.key === b.periode_angsuran)?.label || 'Sesuai saran')]]), { actions: edit(1) })
+          + card('Catatan keuangan', rows(FINANCE_FIELDS.filter((f) => f.min).map((f) => [FIN_PASAR[f.key] || f.label, rp(b.keuangan?.[f.key])])), { actions: edit(2) })
+          + card('Jaminan & berkas', rows([['Jaminan', ag.ketersediaan === 'ada' ? `${esc(COLLATERAL_OPTIONS.find((c) => c.key === ag.jenis)?.label || '')} · ${rp(ag.nilai_agunan)}` : 'Tanpa jaminan'], ['Berkas terlampir', `${d.documents.length} berkas`]])
+               + (missingDocs.length ? `<p class="callout warn small" style="margin-top:8px">Belum dilampirkan: ${missingDocs.map((s) => esc(s.label)).join(', ')}. Tetap bisa dikirim; petugas mungkin minta menyusul.</p>` : ''), { actions: edit(3) })
           + (sim.error ? '' : card('Perkiraan cicilan', `<div class="kpis"><div class="kpi"><b>${rp(sim.periodic.per_period)}</b><span>per ${{ harian: 'hari', mingguan: 'minggu', bulanan: 'bulan' }[sim.periodicity]}</span></div><div class="kpi"><b>${rp(sim.inst.total_payment)}</b><span>total dibayar</span></div></div>
-               <p class="small muted" style="margin-top:8px">Perkiraan dengan bunga flat 14% per tahun. Jumlah, bunga, dan cicilan final ditentukan dalam penawaran petugas.</p>`))
+               <p class="small muted" style="margin-top:8px">Perkiraan dengan bunga 14% per tahun. Angka pastinya ada di tawaran dari petugas.</p>`))
           + card('Persetujuan', `<label class="check"><input type="checkbox" name="consent" ${d.consent?.accepted ? 'checked disabled' : ''}><span>${esc(INTAKE_CONFIG.consent.clause)}</span></label>`);
 }
 
@@ -240,8 +257,8 @@ function stepError(step, d, consentChecked) {
      const finOnly = step === 1 && A.MIN_FIN_FIELDS.every((k) => Number.isFinite(d.borrower.keuangan?.[k]));
      const err = finOnly ? null : A.validateDraftStep(step === 2 ? 1 : step, d, { consentChecked });
      if (err === 'missing-finance') {
-          const miss = FINANCE_FIELDS.filter((f) => f.min && (d.borrower.keuangan?.[f.key] === null || d.borrower.keuangan?.[f.key] === undefined)).map((f) => f.label.toLowerCase());
-          return `Angka wajib belum terisi: <strong>${esc(miss.join(', '))}</strong>. Kirim laporan yang lebih lengkap atau isi sendiri.`;
+          const miss = FINANCE_FIELDS.filter((f) => f.min && (d.borrower.keuangan?.[f.key] === null || d.borrower.keuangan?.[f.key] === undefined)).map((f) => (FIN_PASAR[f.key] || f.label).toLowerCase());
+          return `Angka wajib belum terisi: <strong>${esc(miss.join(', '))}</strong>. Kirim catatan yang lebih lengkap atau ketik sendiri.`;
      }
      return err ? esc(err) : '';
 }
@@ -287,7 +304,7 @@ function bindWizard(main, ctx) {
           track('apply_submit');
           const id = res.id;
           wiz = { draft: null, step: 0, error: '', notice: '' };
-          toast('Pengajuan terkirim. Petugas akan memeriksanya.');
+          toast('Pengajuan terkirim. Petugas akan mengeceknya.');
           location.hash = `#/pengajuan/${encodeURIComponent(id)}`;
      });
 
@@ -350,7 +367,7 @@ export function list(main) {
           return `<li><div class="main"><a href="#/pengajuan/${encodeURIComponent(a.id)}">${esc(b.nama || 'Tanpa nama')}</a>
                <div class="meta">${rp(a.amount_requested)} · ${esc(b.tenor_bulan || '—')} bulan · diperbarui ${esc(date(a.updated_at || a.created_at))}</div></div>
                ${statusPill(a)}${nextAction(a)}</li>`;
-     }).join('')}</ul>`) : card('', empty('Belum ada pengajuan', 'Mulai dengan mengisi data usaha Anda.', '<a class="btn btn-primary" href="#/ajukan">Ajukan pinjaman</a>'))}`;
+     }).join('')}</ul>`) : card('', empty('Belum ada pengajuan', 'Mulai dengan mengisi data usaha Bapak/Ibu.', '<a class="btn btn-primary" href="#/ajukan">Ajukan pinjaman modal</a>'))}`;
      return { title: 'Pengajuan saya' };
 }
 
@@ -365,10 +382,10 @@ export function detail(main, params, ctx) {
      const offer = app.offerView;
      const expired = offer?.expires_at && Date.parse(offer.expires_at) <= Date.now();
      const offerCard = offer && ['offered', 'accepted', 'declined'].includes(app.status)
-          ? card(app.status === 'offered' ? 'Penawaran untuk Anda' : 'Penawaran', `${offerTermsHtml(offer)}
+          ? card(app.status === 'offered' ? 'Tawaran untuk Bapak/Ibu' : 'Tawaran', `${offerTermsHtml(offer, { pasar: true })}
                ${offer.note ? `<p class="callout" style="margin-top:10px"><strong>Catatan petugas:</strong> ${esc(offer.note)}</p>` : ''}
-               ${app.status === 'offered' ? `<p class="small muted" style="margin-top:10px">${expired ? '<strong>Penawaran sudah kedaluwarsa.</strong> Hubungi petugas untuk penawaran baru.' : `Berlaku sampai ${esc(date(offer.expires_at))}.`}</p>
-                    <div class="actions" style="margin-top:10px"><button class="btn btn-primary" data-respond="1" ${expired ? 'disabled' : ''}>Terima penawaran</button><button class="btn btn-danger" data-respond="0">Tolak</button></div>` : ''}`)
+               ${app.status === 'offered' ? `<p class="small muted" style="margin-top:10px">${expired ? '<strong>Tawaran sudah lewat batas waktu.</strong> Hubungi petugas untuk tawaran baru.' : `Berlaku sampai ${esc(date(offer.expires_at))}.`}</p>
+                    <div class="actions" style="margin-top:10px"><button class="btn btn-primary" data-respond="1" ${expired ? 'disabled' : ''}>Ambil tawaran</button><button class="btn btn-danger" data-respond="0">Tolak</button></div>` : ''}`)
           : '';
      const note = app.improvement_note ? parseImprovementSteps(app.improvement_note.text) : null;
      const fac = app.facility_summary;
@@ -379,19 +396,19 @@ export function detail(main, params, ctx) {
                ${answer({ title: app.feedback.title, text: app.feedback.message, tone: app.feedback.tone, body: app.feedback.note ? `<p class="callout ${TONE[app.feedback.tone] || ''}"><strong>Catatan petugas:</strong> ${esc(app.feedback.note)}</p>` : '',
                     actions: app.status === 'need_fix' ? `<a class="btn btn-primary" href="#/ajukan?id=${encodeURIComponent(app.id)}">Perbaiki sekarang</a>` : app.status === 'draft' ? `<a class="btn btn-primary" href="#/ajukan?id=${encodeURIComponent(app.id)}">Lanjutkan mengisi</a> <button class="btn btn-danger" data-delete>Hapus draf</button>` : '' })}
                ${offerCard}
-               ${fac ? card('Pencairan', rows([['Status', esc({ pipeline: 'Sedang disiapkan', aktif: 'Sudah dicairkan', lunas: 'Lunas', ditolak: 'Tidak dilanjutkan' }[fac.status] || fac.status)], ['Tanggal cair', esc(date(fac.disbursed_at))]])) : ''}
+               ${fac ? card('Dana cair', rows([['Status', esc({ pipeline: 'Sedang disiapkan', aktif: 'Sudah cair', lunas: 'Lunas', ditolak: 'Tidak dilanjutkan' }[fac.status] || fac.status)], ['Tanggal cair', esc(date(fac.disbursed_at))]])) : ''}
                ${note ? card('Saran perbaikan dari petugas', note.steps.length ? `<ol>${note.steps.map((s) => `<li><strong>${esc(s.action)}</strong>${s.evidence.length ? `<div class="small muted">Bukti: ${s.evidence.map(esc).join(', ')}</div>` : ''}</li>`).join('')}</ol>${note.closing ? `<p>${esc(note.closing)}</p>` : ''}` : `<p>${esc(note.closing)}</p>`) : ''}
-               ${card('Data pengajuan', rows([['Jumlah diajukan', rp(app.amount_requested)], ['Lama', `${esc(b.tenor_bulan)} bulan`], ['Keperluan', esc(b.tujuan_kredit || '—')], ['Dokumen', `${(app.documents || []).length} berkas`], ['Dikirim', esc(date(app.submitted_at))]]))}
+               ${card('Data pengajuan', rows([['Modal diminta', rp(app.amount_requested)], ['Dicicil', `${esc(b.tenor_bulan)} bulan`], ['Untuk', esc(b.tujuan_kredit || '—')], ['Berkas', `${(app.documents || []).length} berkas`], ['Dikirim', esc(date(app.submitted_at))]]))}
           </div>
-          ${card('Perjalanan pengajuan', timelineHtml(app))}
+          ${card('Perjalanan pengajuan', timelineHtml(app, { pasar: true }))}
      </div>`;
      main.querySelectorAll('[data-respond]').forEach((btn) => btn.addEventListener('click', async () => {
           const accept = btn.dataset.respond === '1';
           const ok = await confirmSheet(accept
-               ? { title: 'Terima penawaran ini?', message: `Anda setuju meminjam ${rp(offer.amount)} dengan cicilan ${rp(offer.terms?.installment)} per ${{ harian: 'hari', mingguan: 'minggu' }[offer.terms?.periodicity] || 'bulan'}. Petugas lalu menyiapkan syarat pencairan.`, confirm: 'Ya, terima' }
-               : { title: 'Tolak penawaran?', message: 'Pengajuan akan ditutup tanpa pencairan. Tindakan ini tidak bisa dibatalkan.', confirm: 'Ya, tolak', danger: true });
+               ? { title: 'Ambil tawaran ini?', message: `Bapak/Ibu setuju meminjam ${rp(offer.amount)} dengan cicilan ${rp(offer.terms?.installment)} per ${{ harian: 'hari', mingguan: 'minggu' }[offer.terms?.periodicity] || 'bulan'}. Petugas lalu menyiapkan pencairan dana.`, confirm: 'Ya, ambil' }
+               : { title: 'Tolak tawaran?', message: 'Pengajuan akan ditutup dan dana tidak dicairkan. Tidak bisa dibatalkan.', confirm: 'Ya, tolak', danger: true });
           if (!ok) return;
-          await busy(btn, () => A.respondToOffer(app.id, accept), { ok: accept ? 'Penawaran diterima.' : 'Penawaran ditolak.', fail: 'Gagal' });
+          await busy(btn, () => A.respondToOffer(app.id, accept), { ok: accept ? 'Tawaran diambil.' : 'Tawaran ditolak.', fail: 'Gagal' });
           track('offer_response', { accept });
           ctx.refresh();
      }));

@@ -73,7 +73,7 @@ function shell(role) {
      if (role === 'public') return '<a class="skip" href="#main">Lewati ke isi</a><main id="main" class="bare" tabindex="-1" data-main></main><div class="toasts" data-toasts aria-live="polite"></div>';
      const s = session();
      const nav = NAV[role] || [];
-     const roleLabel = role === 'lender' ? 'Petugas' : role === 'borrower' ? 'Pemohon' : '';
+     const roleLabel = role === 'lender' ? 'Petugas' : role === 'borrower' ? 'Pemilik usaha' : '';
      const theme = prefs().theme;
      const themeIcon = theme === 'dark' ? 'sun' : 'moon';
      const search = role === 'lender'

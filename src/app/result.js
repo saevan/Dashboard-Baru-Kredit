@@ -9,6 +9,7 @@
 
 import { toPlain, plainMetrics } from '../services/plain.js';
 import { analyze } from '../services/core.js';
+import { debtorSize } from '../services/segment-size.js';
 import { esc, rp, pct, times, num, card, pill, rows, stars, bar, TONE } from './ui.js';
 
 const UNIT = { harian: 'hari', mingguan: 'minggu', bulanan: 'bulan' };
@@ -78,4 +79,26 @@ export function analystDetail(result) {
      ${section('Integritas laporan & arus kas harian', rows([['Integritas', esc(r.integrity?.status_label || '—')], ['Catatan', esc(r.integrity?.summary || '')], r.daily_cashflow?.applicable ? ['Omzet per hari', rp(r.daily_cashflow.daily?.revenue)] : null, r.daily_cashflow?.applicable ? ['Sisihan cicilan per hari', rp(r.daily_cashflow.daily?.debt_service_set_aside)] : null, r.daily_cashflow?.applicable ? ['Rasio cakupan harian', times(r.daily_cashflow.coverage_ratio)] : null]))}
      ${section('Covenant', `<p class="small">${esc(r.covenant?.summary || '')}</p><ul class="small">${(r.covenant?.covenants || []).slice(0, 18).map((c) => `<li><strong>${esc(c.label)}</strong> — ${esc(c.description)}</li>`).join('')}</ul>`)}
      </div>`;
+}
+
+/* ------------------------------------------- segmen debitur kecil/besar --- */
+
+/** Pill "Debitur kecil · Usaha mikro" dari omzet laporan (PP 7/2021). */
+export function sizePill(keuangan) {
+     const sz = debtorSize(keuangan);
+     return sz ? `<span title="Omzet ${esc(rp(sz.omzet))} setahun — ${esc(sz.klasLabel.toLowerCase())} (PP 7/2021)">${pill(`${sz.label} · ${sz.klas}`, sz.key === 'kecil' ? 'ok plain' : 'info plain')}</span>` : '';
+}
+
+/**
+ * Kartu rincian analis. Debitur kecil: ringkasan di atas sudah cukup untuk
+ * memutus, jadi istilah bank (PD/LGD, RAROC, ATMR, covenant) dilipat.
+ * Debitur besar: tampil lengkap seperti biasa. Angkanya sama persis.
+ */
+export function analystCard(result, keuangan) {
+     if (!result) return '';
+     const small = debtorSize(keuangan)?.key === 'kecil';
+     if (!small) return card('Rincian analis', analystDetail(result), { sub: 'Angka teknis mesin MEZS.id' });
+     return `<details class="card more" data-analyst-fold><summary>Rincian lengkap (istilah bank)</summary>
+          <p class="small muted" style="margin:10px 0">Debitur kecil — ringkasan di atas sudah cukup untuk memutus. Angka teknis di bawah tetap dihitung untuk arsip &amp; komite.</p>
+          ${analystDetail(result)}</details>`;
 }

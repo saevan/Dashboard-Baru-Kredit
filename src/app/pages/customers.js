@@ -12,7 +12,7 @@ import { RESTRUCTURE_TYPE_LABEL } from '../../core/restructuring.js';
 import { EWS_STAGES, classifyStage } from '../../core/ews.js';
 import { SCHEME_OPTIONS, borrowerType, borrowerTypeLabel } from '../../services/labels.js';
 import { esc, rp, rpShort, pct, times, num, date, dateTime, card, answer, rows, pill, kpi, empty, toast, confirmSheet, busy, track, options } from '../ui.js';
-import { resultSummary, analystDetail } from '../result.js';
+import { resultSummary, analystCard, sizePill } from '../result.js';
 
 /* Kata sehari-hari untuk tingkat peringatan dini & status fasilitas. */
 export const EWS_WORD = { NORMAL: ['Sehat', 'ok'], WATCH: ['Diawasi', 'warn'], WARNING: ['Waspada', 'warn'], CRITICAL: ['Bermasalah', 'bad'], UNKNOWN: ['Belum dipantau', ''] };
@@ -44,7 +44,7 @@ export function list(main, params) {
      ${card('', items.length ? `<ul class="list">${items.map((r) => {
           const fac = r.facilityInfo;
           const fw = FAC_WORD[r.borrower.facility_status] || null;
-          return `<li><div class="main"><a href="#/nasabah/${encodeURIComponent(r.borrower.id)}">${esc(r.borrower.nama || r.borrower.id)}</a> ${pill(borrowerTypeLabel(r.borrower.profil_company), borrowerType(r.borrower.profil_company) === 'startup' ? 'info plain' : 'plain')}
+          return `<li><div class="main"><a href="#/nasabah/${encodeURIComponent(r.borrower.id)}">${esc(r.borrower.nama || r.borrower.id)}</a> ${pill(borrowerTypeLabel(r.borrower.profil_company), borrowerType(r.borrower.profil_company) === 'startup' ? 'info plain' : 'plain')} ${sizePill(r.borrower.keuangan)}
                <div class="meta">${esc(sectorLabel(r.borrower.sektor))} · ${fac.status === 'aktif' ? `sisa ${rpShort(fac.outstanding)}` : `plafon ${rpShort(r.borrower.plafon_diajukan)}`}${r.lastMonitoring ? ` · dipantau ${esc(date(r.lastMonitoring.created_at))}` : ''}</div></div>
                ${fw ? pill(fw[0], fw[1]) : r.analysis ? pill('Analisis saja', 'plain') : ''}
                ${fac.status === 'aktif' ? ews(r.lastMonitoring ? fac.ews_level : 'UNKNOWN') + pill(fac.collectibility_label, COLL_TONE[fac.collectibility]) : ''}</li>`;
@@ -74,7 +74,7 @@ export function detail(main, params, ctx) {
      const body = { ringkasan: summary, analisis: analysis, fasilitas: facility, simulasi: simulation }[active](c);
      main.innerHTML = `
      <div class="page-head"><div><h1>${esc(b.nama || b.id)}</h1><p>${esc(sectorLabel(b.sektor))}${c.application ? ` · dari <a href="#/pengajuan/${encodeURIComponent(c.application.id)}">pengajuan</a>` : ''}</p></div>
-          <div class="actions">${pill(borrowerTypeLabel(b.profil_company), borrowerType(b.profil_company) === 'startup' ? 'info plain' : 'plain')}${fw ? pill(fw[0], fw[1]) : ''}${c.facility.status === 'aktif' ? ews(c.monitoring.length ? c.facility.ews_level : 'UNKNOWN') : ''}</div></div>
+          <div class="actions">${pill(borrowerTypeLabel(b.profil_company), borrowerType(b.profil_company) === 'startup' ? 'info plain' : 'plain')}${sizePill(b.keuangan)}${fw ? pill(fw[0], fw[1]) : ''}${c.facility.status === 'aktif' ? ews(c.monitoring.length ? c.facility.ews_level : 'UNKNOWN') : ''}</div></div>
      <nav class="tabs" aria-label="Bagian nasabah">${SECTIONS.map((s) => `<a href="#/nasabah/${encodeURIComponent(b.id)}?bagian=${s.key}"${s.key === active ? ' aria-current="page"' : ''}>${esc(s.label)}</a>`).join('')}</nav>
      <div data-section>${body}</div>`;
      bind(main, c, ctx);
@@ -120,7 +120,7 @@ function summary(c) {
 function analysis(c) {
      if (!c.analysis) return answer({ title: 'Belum ada analisis', text: 'Hitung analisis dari data nasabah yang tersimpan.', tone: 'warn', actions: '<button class="btn btn-primary" data-recalc>Hitung analisis</button>' });
      return `${resultSummary(c.analysis, c.borrower)}
-          ${card('Rincian analis', analystDetail(c.analysis), { sub: 'Angka teknis mesin MEZS.id' })}
+          ${analystCard(c.analysis, c.borrower.keuangan)}
           <div class="actions" style="margin-top:14px"><button class="btn" data-recalc>Hitung ulang dengan pengaturan terbaru</button></div>`;
 }
 

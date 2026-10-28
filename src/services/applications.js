@@ -46,7 +46,7 @@ import { reopenAssessment } from '../core/reassessment.js';
 import { improvementNote, IMPROVEMENT_NOTE_STAGES } from '../core/improvement-note.js';
 import { validateOfferSelection, normalizeOffer } from '../core/offer.js';
 import { queueRows } from '../core/workflow.js';
-import { applicantFeedback } from '../core/applicant-feedback.js';
+import { feedbackPasar, STATUS_PASAR } from './pasar.js';
 import { DEMO_USERS } from '../core/auth-local.js';
 import { analyze } from './core.js';
 
@@ -277,17 +277,20 @@ export function respondToOffer(id, accept) {
      return to;
 }
 
+/** Status pemohon dari mesin lama, labelnya dalam bahasa pasar (services/pasar.js). */
+const viewPasar = (status) => ({ ...borrowerStatusView(status), label: STATUS_PASAR[status] || STATUS_PASAR.submitted });
+
 /** Pengajuan milik pemohon yang masuk + ringkasan status ramah pemohon. */
 export function myApplicationList() {
      return myApplications()
-          .map((app) => ({ ...app, feedback: applicantFeedback(app), view: borrowerStatusView(app.status || 'draft'), offerView: normalizeOffer(app.offer) }))
+          .map((app) => ({ ...app, feedback: feedbackPasar(app), view: viewPasar(app.status || 'draft'), offerView: normalizeOffer(app.offer) }))
           .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
 }
 
 export function myApplicationDetail(id) {
      const app = myApplication(id);
      if (!app) return null;
-     return { ...app, feedback: applicantFeedback(app), view: borrowerStatusView(app.status || 'draft'), offerView: normalizeOffer(app.offer), draft: draftFrom(app) };
+     return { ...app, feedback: feedbackPasar(app), view: viewPasar(app.status || 'draft'), offerView: normalizeOffer(app.offer), draft: draftFrom(app) };
 }
 
 export function deleteDraft(id) {

@@ -61,6 +61,13 @@ Umum: pencarian cepat nasabah/pengajuan, breadcrumb, mode gelap, navigasi bawah 
 toast untuk setiap aksi. Akun contoh: `umkm@demo.id` / `umkm123`, `admin@demo.id` / `admin123`,
 atau tombol "Coba sebagai …" di halaman masuk. "Muat data contoh" mengisi pengajuan Bu Sari & pinjaman Pak Darto.
 
+**Segmen target & bahasa pasar.** Begitu angka laporan keuangan terbaca, pengajuan otomatis masuk
+*debitur kecil* (omzet setahun ≤ Rp15 M — usaha mikro/kecil, PP 7/2021) atau *debitur besar* (menengah/besar).
+Isian dan perhitungan sama untuk keduanya; untuk debitur kecil, petugas melihat ringkasan sehari-hari dulu dan
+istilah bank (PD/LGD, RAROC, ATMR, covenant) dilipat di "Rincian lengkap". Antrean pengajuan bisa disaring per
+ukuran. Semua layar pemohon memakai bahasa pedagang & UMKM lokal: sapaan Bapak/Ibu, omzet, untung bersih, modal,
+cicilan per hari — tanpa "lender/plafon/tenor/agunan" (`src/services/pasar.js`, `src/services/segment-size.js`).
+
 Data tersimpan di browser (mode lokal, kunci `pla.*` sama dengan dashboard lama — cadangan JSON lama bisa diimpor).
 
 ## Menjalankan
@@ -105,6 +112,8 @@ src/services/               logika yang dulu tertanam di tampilan lama, dipindah
   applications.js           pengajuan: draf, lampiran, isi otomatis, kirim, audit, nilai, penawaran
   portfolio.js              nasabah, fasilitas, pemantauan, 3R, portofolio, cadangan
   simulation.js · plain.js · labels.js · demo.js
+  segment-size.js           debitur kecil/besar dari omzet laporan (PP 7/2021)
+  pasar.js                  kata-kata status & pesan untuk pemohon (bahasa pasar)
 src/app/                    tampilan baru
   main.js                   rute, menu per peran, breadcrumb, pencarian, mode gelap
   ui.js · widgets.js · result.js · styles.css

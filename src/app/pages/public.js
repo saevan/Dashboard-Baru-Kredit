@@ -34,12 +34,12 @@ export function landing(main) {
 const AUDIENCE_KEY = 'mezs.login.audience';
 const COPY = {
      borrower: {
-          eyebrow: 'Portal pemohon UMKM', title: 'Masuk untuk mengajukan & memantau kredit',
-          intro: 'Lanjutkan pengajuan, unggah laporan keuangan, cek status, dan tanggapi penawaran dari lender.', placeholder: 'nama@usaha.id',
-          hero: 'Ajukan kredit usaha secara online, <em>pantau</em> setiap tahapnya.',
-          points: [['Unggah laporan apa adanya', 'PDF, Excel, CSV, atau foto laporan keuangan terbaca otomatis, tanpa mengetik ulang.'],
-               ['Status selalu terlihat', 'Dari verifikasi dokumen sampai keputusan lender, lengkap dengan langkah perbaikan.'],
-               ['Penawaran yang jelas', 'Plafon, tenor, bunga atau bagi hasil, dan total pembayaran tampil sebelum Anda setuju.']]
+          eyebrow: 'Untuk pedagang & UMKM', title: 'Masuk untuk ajukan & pantau pinjaman modal',
+          intro: 'Lanjutkan pengajuan, kirim catatan keuangan, cek kabarnya, dan jawab tawaran dari petugas.', placeholder: 'nama@usaha.id',
+          hero: 'Pinjam modal usaha dari HP, <em>pantau</em> kabarnya setiap saat.',
+          points: [['Kirim catatan apa adanya', 'Foto, PDF, atau Excel catatan keuangan dibaca otomatis — tidak perlu mengetik ulang.'],
+               ['Kabar selalu terlihat', 'Dari berkas dicek sampai dana cair, plus saran kalau ada yang perlu dilengkapi.'],
+               ['Tawaran yang jelas', 'Jumlah pinjaman, cicilan per hari/minggu/bulan, dan total yang dibayar tampil sebelum Bapak/Ibu setuju.']]
      },
      lender: {
           eyebrow: 'Akses tim lender', title: 'Masuk ke ruang kerja',
@@ -79,7 +79,7 @@ export function loginPage(main, params) {
           const demo = [...DEMO_USERS].sort((a, b) => Number(b.role === (audience === 'lender' ? 'lender' : 'borrower')) - Number(a.role === (audience === 'lender' ? 'lender' : 'borrower')));
           main.innerHTML = authShell(audience, `<section class="auth-card" aria-labelledby="login-title">
                <div class="auth-switch" role="group" aria-label="Masuk sebagai">
-                    <button type="button" data-audience="borrower" aria-pressed="${audience === 'borrower'}">Pemohon kredit</button>
+                    <button type="button" data-audience="borrower" aria-pressed="${audience === 'borrower'}">Pemilik usaha</button>
                     <button type="button" data-audience="lender" aria-pressed="${audience === 'lender'}">Tim lender</button></div>
                <p class="lp-eyebrow">${c.eyebrow}</p>
                <h1 id="login-title">${c.title}</h1>
@@ -148,7 +148,7 @@ function bindLogin(main, audience, paint) {
           try {
                const s = login(v.email, v.password);
                track('login', { role: s.role });
-               if ((s.role === 'borrower') !== (audience === 'borrower')) toast(`Anda masuk sebagai ${s.role === 'borrower' ? 'pemohon' : 'tim lender'} sesuai akun.`, 'info', 4000);
+               if ((s.role === 'borrower') !== (audience === 'borrower')) toast(`Masuk sebagai ${s.role === 'borrower' ? 'pemilik usaha' : 'tim lender'} sesuai akun.`, 'info', 4000);
                else toast(`Selamat datang, ${s.name}.`);
                goHome();
           } catch (ex) {
@@ -164,15 +164,15 @@ function bindLogin(main, audience, paint) {
 
 export function register(main) {
      main.innerHTML = authShell('borrower', `<section class="auth-card" aria-labelledby="rg-title">
-          <p class="lp-eyebrow">Portal pemohon UMKM</p>
-          <h1 id="rg-title">Daftar akun pemohon</h1>
-          <p class="muted">Akun ini untuk pemilik usaha. Akun tim lender dibuat oleh admin.</p>
+          <p class="lp-eyebrow">Untuk pedagang &amp; UMKM</p>
+          <h1 id="rg-title">Daftar akun pemilik usaha</h1>
+          <p class="muted">Akun ini untuk pemilik usaha yang butuh modal. Akun petugas dibuat oleh admin.</p>
           <form data-register novalidate>
                <div class="field"><label for="rg-name">Nama lengkap</label><input id="rg-name" name="name" type="text" autocomplete="name" required></div>
                <div class="field"><label for="rg-email">Email</label><input id="rg-email" name="email" type="email" autocomplete="email" placeholder="nama@usaha.id" required></div>
                <div class="field"><label for="rg-pw">Kata sandi</label><p class="hint">Minimal 6 karakter.</p><input id="rg-pw" name="password" type="password" autocomplete="new-password" minlength="6" required></div>
                <p class="err" data-err role="alert" hidden></p>
-               <button class="btn btn-gold btn-block" type="submit">Daftar &amp; mulai pengajuan</button>
+               <button class="btn btn-gold btn-block" type="submit">Daftar &amp; ajukan pinjaman modal</button>
           </form>
           <p class="small" style="margin-top:12px">Sudah punya akun? <a href="#/masuk">Masuk</a></p>
      </section>`);

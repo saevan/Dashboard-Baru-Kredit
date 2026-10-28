@@ -20,7 +20,8 @@ import { WORK_FOCUS, workFocus } from '../../core/workflow.js';
 import { SECTOR_OPTIONS, FINANCE_FIELDS, COLLATERAL_OPTIONS, borrowerType, borrowerTypeLabel } from '../../services/labels.js';
 import { esc, rp, rpShort, pct, date, card, answer, rows, pill, kpi, steps, empty, toast, confirmSheet, busy, track } from '../ui.js';
 import { offerTermsHtml, timelineHtml } from '../widgets.js';
-import { resultSummary, analystDetail } from '../result.js';
+import { resultSummary, analystCard, sizePill } from '../result.js';
+import { debtorSize } from '../../services/segment-size.js';
 
 const STATUS_TONE = { submitted: 'info', need_fix: 'warn', verified: 'info', scored: 'warn', offered: 'info', accepted: 'ok', declined: '', decided: 'ok', rejected: 'bad' };
 const statusPill = (s) => pill(APPLICATION_STATUS_LABEL[s] || s, STATUS_TONE[s] || '');
@@ -32,7 +33,7 @@ const taskHref = (row) => row.task.href.replace('#/applications/', '#/pengajuan/
 
 function taskRow(row) {
      const reasons = priorityReasons(row).filter((r) => !r.startsWith('Belum ada penanggung'));
-     return `<li><div class="main"><a href="${esc(taskHref(row))}">${esc(nameOf(row))}</a> ${typePill((row.payload?.borrower || row.borrower || {}).profil_company)}
+     return `<li><div class="main"><a href="${esc(taskHref(row))}">${esc(nameOf(row))}</a> ${typePill((row.payload?.borrower || row.borrower || {}).profil_company)} ${sizePill((row.payload?.borrower || row.borrower || {}).keuangan)}
           <div class="meta">${rp(row.amount_requested ?? row.payload?.borrower?.plafon_diajukan)} · ${row.age_days === null ? '' : `${row.age_days} hari di tahap ini`}${reasons.length ? ` · <strong>${esc(reasons.join(' · '))}</strong>` : ''}</div></div>
           ${statusPill(row.status)}${row.task.label === 'Siapkan fasilitas'
                ? `<button class="btn btn-sm btn-primary" data-prepare-row="${esc(row.id)}">Siapkan fasilitas</button>`
@@ -90,16 +91,29 @@ const FILTERS = [
      { key: 'arsip', label: 'Selesai' }
 ];
 
+/* Segmen target dari omzet laporan keuangan (services/segment-size.js). */
+const SIZES = [
+     { key: '', label: 'Semua ukuran' },
+     { key: 'kecil', label: 'Debitur kecil (omzet ≤ Rp15 M)' },
+     { key: 'besar', label: 'Debitur besar' }
+];
+
 export function queue(main, params) {
      const all = A.lenderQueue();
      const f = FILTERS.some((x) => x.key === params.filter) ? params.filter || '' : '';
      const q = (params.q || '').toLowerCase();
+     const size = SIZES.some((x) => x.key === params.ukuran) ? params.ukuran || '' : '';
+     const sizeOf = (r) => debtorSize((r.payload?.borrower || r.borrower || {}).keuangan)?.key || '';
      const pick = (r) => (f === '' ? r.task.owner === 'lender' : f === 'pemohon' ? r.task.owner === 'borrower' : f === 'arsip' ? r.task.owner === 'none' : true);
-     const rowsList = all.filter(pick).filter((r) => !q || nameOf(r).toLowerCase().includes(q))
+     const rowsList = all.filter(pick).filter((r) => !size || sizeOf(r) === size).filter((r) => !q || nameOf(r).toLowerCase().includes(q))
           .sort((a, b) => (b.age_days ?? -1) - (a.age_days ?? -1));
      main.innerHTML = `
      <div class="page-head"><div><h1>Pengajuan</h1><p>${all.filter((r) => r.task.owner === 'lender').length} menunggu Anda · ${all.length} total</p></div></div>
      <nav class="tabs" aria-label="Saring pengajuan">${FILTERS.map((x) => `<a href="#/pengajuan${x.key ? `?filter=${x.key}` : ''}"${x.key === f ? ' aria-current="page"' : ''}>${esc(x.label)} (${all.filter((r) => (x.key === '' ? r.task.owner === 'lender' : x.key === 'pemohon' ? r.task.owner === 'borrower' : x.key === 'arsip' ? r.task.owner === 'none' : true)).length})</a>`).join('')}</nav>
+     <nav class="actions" aria-label="Saring ukuran debitur" style="margin:-4px 0 12px">${SIZES.map((x) => {
+          const qs = new URLSearchParams({ ...(f ? { filter: f } : {}), ...(x.key ? { ukuran: x.key } : {}) }).toString();
+          return `<a class="btn btn-sm${x.key === size ? ' btn-primary' : ' btn-quiet'}" href="#/pengajuan${qs ? `?${qs}` : ''}"${x.key === size ? ' aria-current="true"' : ''}>${esc(x.label)} (${all.filter(pick).filter((r) => !x.key || sizeOf(r) === x.key).length})</a>`;
+     }).join('')}</nav>
      ${card('', rowsList.length ? `<ul class="list">${rowsList.map(taskRow).join('')}</ul>` : empty('Tidak ada pengajuan', f === '' ? 'Semua pengajuan sudah Anda tangani.' : '', all.length ? '' : '<p class="small">Pengajuan dari pemohon akan muncul di sini. Atau muat data contoh dari Beranda.</p>'))}`;
      bindPrepareRows(main);
      return { title: 'Pengajuan' };
@@ -175,7 +189,7 @@ export function review(main, params, ctx) {
                     ${d.status === 'submitted' ? '<button class="btn" data-act="request_fix">Minta perbaikan</button>' : ''}<button class="btn btn-danger" data-act="reject">Tolak</button></div></div></div>`;
      main.innerHTML = `
      <div class="page-head"><div><h1>${esc(b.nama || d.id)}</h1><p>${esc(sector || '')} · diajukan ${rp(d.amount_requested)} / ${esc(b.tenor_bulan)} bulan · masuk ${esc(date(d.submitted_at))}</p></div>
-          <div class="actions">${typePill(b.profil_company)}${statusPill(d.status)}${next ? `<a class="btn btn-sm" href="${esc(next.href)}" title="${esc(next.name)}">Berikutnya →</a>` : ''}</div></div>
+          <div class="actions">${typePill(b.profil_company)}${sizePill(b.keuangan)}${statusPill(d.status)}${next ? `<a class="btn btn-sm" href="${esc(next.href)}" title="${esc(next.name)}">Berikutnya →</a>` : ''}</div></div>
      <div class="split"><div data-main-col>${body}</div>
           <aside class="stack">
                ${card('Perjalanan', timelineHtml(d), { level: 3 })}
@@ -312,7 +326,7 @@ function stepResult(d, { prog }) {
                <div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-save-improve>Kirim catatan</button></div>`, { level: 3 })
           : '';
      return `${r ? resultSummary(r, borrower) : ''}${head}${decision}
-          ${r ? card('Rincian analis', analystDetail(r), { sub: 'Angka teknis mesin MEZS.id' }) : ''}
+          ${analystCard(r, borrower?.keuangan)}
           ${improve}
           ${s === 'scored' ? '<div class="actions"><button class="btn btn-quiet" data-act="reassess">Buka ulang penilaian</button></div>' : ''}`;
 }
